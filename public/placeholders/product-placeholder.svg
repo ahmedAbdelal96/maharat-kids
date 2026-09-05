@@ -1,0 +1,41 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="800" y2="800" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="200" y1="200" x2="600" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <filter id="dropShadow" x="150" y="170" width="500" height="500" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#0f172a" flood-opacity="0.06" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="800" height="800" fill="url(#bgGrad)" />
+
+  <!-- Subtle Neutral Geometric Guides -->
+  <circle cx="400" cy="400" r="280" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.6" />
+  <circle cx="400" cy="400" r="200" stroke="#cbd5e1" stroke-width="1" opacity="0.4" />
+
+  <!-- Elevated Plate -->
+  <rect x="220" y="220" width="360" height="360" rx="32" fill="url(#cardGrad)" filter="url(#dropShadow)" />
+  <rect x="220" y="220" width="360" height="360" rx="32" stroke="#ffffff" stroke-width="2" />
+
+  <!-- Neutral Isometric Package Icon -->
+  <g transform="translate(400, 390)">
+    <!-- Top Face -->
+    <path d="M0 -60 L60 -25 L0 10 L-60 -25 Z" fill="#94a3b8" />
+    <!-- Right Face -->
+    <path d="M0 10 L60 -25 L60 45 L0 80 Z" fill="#64748b" />
+    <!-- Left Face -->
+    <path d="M0 10 L-60 -25 L-60 45 L0 80 Z" fill="#475569" />
+    <!-- Subtle Seam Lines -->
+    <path d="M0 -60 L0 10 L0 80" stroke="#f8fafc" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+  </g>
+
+  <!-- Neutral Placeholder Bar -->
+  <rect x="350" y="520" width="100" height="8" rx="4" fill="#cbd5e1" />
+</svg>

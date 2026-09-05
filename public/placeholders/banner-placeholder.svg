@@ -1,0 +1,29 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bannerBg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="glassLayer" x1="750" y1="100" x2="1050" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" fill-opacity="0.12" />
+      <stop offset="100%" stop-color="#ffffff" fill-opacity="0.03" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="600" fill="url(#bannerBg)" />
+
+  <!-- Subtle Neutral Geometric Circles -->
+  <circle cx="950" cy="300" r="280" fill="#334155" fill-opacity="0.2" />
+
+  <!-- Layered Glassmorphic Card Showcase -->
+  <g transform="translate(750, 110) rotate(5)">
+    <rect width="320" height="380" rx="32" fill="url(#glassLayer)" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1.5" />
+    <circle cx="160" cy="160" r="64" fill="#ffffff" fill-opacity="0.1" />
+    <!-- Neutral Product Silhouette -->
+    <path d="M130 140 H190 V185 C190 201 176 215 160 215 C144 215 130 201 130 185 Z" fill="#ffffff" fill-opacity="0.8" />
+    <path d="M145 140 V125 C145 116 151 110 160 110 C169 110 175 116 175 125 V140" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" />
+    <rect x="40" y="270" width="160" height="12" rx="6" fill="#ffffff" fill-opacity="0.6" />
+    <rect x="40" y="296" width="90" height="8" rx="4" fill="#ffffff" fill-opacity="0.3" />
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+import "server-only";
+
+import { AppError, NotFoundError, ValidationError } from "@/core/errors";
+import { failure, success, type Result } from "@/core/result";
+import type { AuthorizationService } from "@/modules/identity/domain/services";
+import type { UserId } from "@/modules/identity/types";
+import type { CouponRepository } from "../infrastructure/repository";
+import { createCouponSchema, updateCouponSchema } from "../schema";
+import type { Coupon, CouponDetail, CouponQuery, CreateCouponInput, UpdateCouponInput } from "../types";
+import { COUPON_PERMISSION } from "../constants";
+
+function mapError(error: unknown, fallback = "Coupon operation could not be completed.") { if (error instanceof AppError) return error; if (error instanceof Error && error.message.includes("Unique constraint")) return new ValidationError("A coupon with this code already exists."); return new AppError("COUPON_OPERATION_FAILED", fallback, { cause: error }); }
+
+export class CouponService {
+  constructor(private readonly repository: CouponRepository, private readonly authorization: AuthorizationService) {}
+  private async authorize(userId: string, permission: string) { return this.authorization.requirePermission(userId as UserId, permission); }
+  async list(userId: string, query: CouponQuery = {}): Promise<Result<{ items: Coupon[]; total: number }, AppError>> { const auth = await this.authorize(userId, COUPON_PERMISSION.view); if (!auth.success) return failure(auth.error); try { return success(await this.repository.findAll(query)); } catch (e) { return failure(mapError(e)); } }
+  async detail(userId: string, id: string): Promise<Result<CouponDetail, AppError>> { const auth = await this.authorize(userId, COUPON_PERMISSION.view); if (!auth.success) return failure(auth.error); try { const result = await this.repository.findById(id); return result ? success(result) : failure(new NotFoundError("COUPON", "Coupon not found.")); } catch (e) { return failure(mapError(e)); } }
+  async create(userId: string, raw: unknown): Promise<Result<Coupon, AppError>> { const auth = await this.authorize(userId, COUPON_PERMISSION.create); if (!auth.success) return failure(auth.error); const parsed = createCouponSchema.safeParse(raw); if (!parsed.success) return failure(new ValidationError("Please review the coupon details.", { issues: parsed.error.issues })); try { return success(await this.repository.create({ ...parsed.data, code: parsed.data.code.toUpperCase() } as CreateCouponInput & { code: string })); } catch (e) { return failure(mapError(e, "Coupon could not be created.")); } }
+  async update(userId: string, raw: unknown): Promise<Result<Coupon, AppError>> { const auth = await this.authorize(userId, COUPON_PERMISSION.update); if (!auth.success) return failure(auth.error); const parsed = updateCouponSchema.safeParse(raw); if (!parsed.success) return failure(new ValidationError("Please review the coupon details.", { issues: parsed.error.issues })); const existing = await this.repository.findById(parsed.data.id); if (!existing) return failure(new NotFoundError("COUPON", "Coupon not found.")); if (parsed.data.code && existing.redeemedCount > 0 && parsed.data.code.toUpperCase() !== existing.code) return failure(new ValidationError("A used coupon code cannot be changed. Deactivate it or update its future rules.")); if (parsed.data.totalUsageLimit != null && parsed.data.totalUsageLimit < existing.redeemedCount) return failure(new ValidationError(`The total usage limit cannot be lower than current usage (${existing.redeemedCount}).`)); try { return success(await this.repository.update({ ...parsed.data, code: parsed.data.code?.toUpperCase() } as UpdateCouponInput & { code?: string })); } catch (e) { return failure(mapError(e, "Coupon could not be updated.")); } }
+  async delete(userId: string, id: string): Promise<Result<{ deleted: true; code: string }, AppError>> { const auth = await this.authorize(userId, COUPON_PERMISSION.delete); if (!auth.success) return failure(auth.error); try { const existing = await this.repository.findById(id); if (!existing) return failure(new NotFoundError("COUPON", "Coupon not found.")); const count = await this.repository.countRedemptions(id); if (count > 0) return failure(new ValidationError("Used coupons cannot be deleted. Deactivate this coupon to preserve its history.")); await this.repository.delete(id); return success({ deleted: true, code: existing.code }); } catch (e) { return failure(mapError(e, "Coupon could not be deleted.")); } }
+}

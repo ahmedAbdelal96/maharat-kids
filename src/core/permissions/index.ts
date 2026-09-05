@@ -1,0 +1,26 @@
+export const permissions = [
+  "admin.access",
+  "dashboard.view",
+  "catalog:read",
+  "catalog:write",
+  "products.view",
+  "products.create",
+  "products.update",
+  "products.archive",
+  "products.delete",
+  "orders:read",
+  "orders:write",
+  "customers:read",
+  "users.view",
+  "users.create",
+  "users.update",
+  "inventory.view",
+  "inventory:write",
+  "shipping.view",
+  "shipping.update",
+  "payments.settle",
+  "settings.view",
+  "settings.update",
+] as const;
+
+export type Permission = (typeof permissions)[number];

@@ -1,0 +1,130 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, Check, CreditCard, MapPin, Sparkles, UserRound } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ProductImage } from "@/components/ecommerce/product-image";
+import { formatMoney } from "@/lib/formatters";
+import { formatCustomerAddress } from "@/modules/customers/address";
+import { placeOrder } from "../server/actions";
+import type { CheckoutData } from "../types";
+
+export function CheckoutClient({ data }: { data: CheckoutData }) {
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const [addressId, setAddressId] = useState(data.addresses.find((address) => address.isDefault)?.id ?? data.addresses[0]?.id ?? "");
+  const [paymentMethodId, setPaymentMethodId] = useState(data.paymentMethods[0]?.id ?? "");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [checkoutToken] = useState(() => crypto.randomUUID());
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const selectedAddress = data.addresses.find((item) => item.id === addressId);
+  const selectedPayment = data.paymentMethods.find((item) => item.id === paymentMethodId);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    const result = await placeOrder({ addressId, paymentMethodId, checkoutToken, paymentReference: selectedPayment?.type === "MANUAL_TRANSFER" ? paymentReference : undefined, paymentNotes: selectedPayment?.type === "MANUAL_TRANSFER" ? paymentNotes : undefined });
+    if (result.success) router.push(`/checkout/success?order=${encodeURIComponent(result.data.orderNumber)}`);
+    else { setError(result.error.message); setSubmitting(false); }
+  }
+
+  if (data.addresses.length === 0) return <Card><CardContent className="py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]"><MapPin className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-bold">Add a delivery address first</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Choose a saved address or add one from your account before placing the order.</p><Link href="/account"><Button className="mt-5">Manage My Addresses</Button></Link></CardContent></Card>;
+  if (data.paymentMethods.length === 0) return <Card><CardContent className="py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-subtle)] text-[var(--warning)]"><CreditCard className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-bold">No payment methods are available</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Please contact the store administrator before continuing.</p></CardContent></Card>;
+
+  return (
+    <form onSubmit={submit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-5">
+        <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><UserRound className="h-4 w-4 text-[var(--primary)]" />Customer Information</CardTitle></CardHeader><CardContent><div className="grid gap-3 sm:grid-cols-3"><div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Name</p><p className="mt-1 text-sm font-semibold">{data.customer.name || "Customer"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Email</p><p className="mt-1 break-all text-sm font-semibold">{data.customer.email}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Phone</p><p className="mt-1 text-sm font-semibold">{data.customer.phone || "Not provided"}</p></div></div></CardContent></Card>
+        </motion.div>
+
+        <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><MapPin className="h-4 w-4 text-[var(--primary)]" />Shipping Address</CardTitle></CardHeader><CardContent className="space-y-3">{data.addresses.map((item) => <label key={item.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${item.id === addressId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center gap-2"><input type="radio" name="address" checked={item.id === addressId} onChange={() => setAddressId(item.id)} /><span className="font-bold">{item.label}</span>{item.isDefault && <Badge variant="secondary" size="sm">Default</Badge>}</span><span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]"><strong className="text-[var(--text-primary)]">{item.recipientName}</strong> · {item.phone}<br />{formatCustomerAddress(item)}{item.notes && <><br /><span className="font-semibold text-[var(--text-primary)]">Notes:</span> {item.notes}</>}</span></label>)}<Link href="/account" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--primary)]"><ArrowLeft className="h-3 w-3" />Add or edit an address in My Account</Link></CardContent></Card>
+        </motion.div>
+
+        <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-4 w-4 text-[var(--primary)]" />Payment Method</CardTitle></CardHeader><CardContent className="space-y-3">{data.paymentMethods.map((method) => <label key={method.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${method.id === paymentMethodId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center justify-between gap-3"><span className="flex items-center gap-2"><input type="radio" name="payment" checked={method.id === paymentMethodId} onChange={() => setPaymentMethodId(method.id)} /><span className="font-bold">{method.name}</span></span><Badge variant="outline" size="sm">{method.type === "CASH_ON_DELIVERY" ? "Pay on delivery" : "Manual transfer"}</Badge></span>{method.type === "CASH_ON_DELIVERY" ? <span className="mt-2 block text-xs text-[var(--text-secondary)]">Pay when your order arrives.</span> : <span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]">Transfer destination: <strong>{method.destination || "Provided by the store"}</strong>{method.instructions && <><br />{method.instructions}</>}</span>}{method.id === paymentMethodId && method.type === "MANUAL_TRANSFER" && <div className="mt-3 grid gap-3 sm:grid-cols-2"><span className="text-xs font-semibold">Transfer reference<Input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Optional" /></span><span className="text-xs font-semibold">Payment note<Input value={paymentNotes} onChange={(event) => setPaymentNotes(event.target.value)} placeholder="Optional" /></span></div>}</label>)}</CardContent></Card>
+        </motion.div>
+        {error && <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--destructive-subtle)] px-3 py-2 text-xs text-[var(--destructive)]">{error}</p>}
+      </div>
+
+      <Card className="lg:sticky lg:top-24">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><Check className="h-4 w-4 text-[var(--primary)]" />Final Review</CardTitle>
+          <p className="text-xs text-[var(--text-secondary)]">Review your items, address, and payment before placing the order.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            {data.cart.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 text-xs">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-md)]">
+                  <ProductImage src={item.imageUrl ?? undefined} alt={item.name} aspectRatio="square" />
+                </div>
+                <span className="min-w-0 flex-1 truncate text-[var(--text-secondary)]">{item.name} × {item.quantity}</span>
+                <span className="font-semibold">{formatMoney(item.lineTotal, data.currency)}</span>
+              </div>
+            ))}
+
+            {data.cart.giftItems?.map((gift) => (
+              <div key={`gift-${gift.productId}`} className="flex items-center gap-3 rounded-[var(--radius-md)] bg-[var(--surface-muted)]/50 p-2 text-xs">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-md)]">
+                  <ProductImage src={gift.imageUrl ?? undefined} alt={gift.name} aspectRatio="square" />
+                  <span className="absolute top-0.5 left-0.5 rounded bg-[var(--accent)] px-1 text-[8px] font-bold text-[var(--accent-foreground)]">GIFT</span>
+                </div>
+                <div className="min-w-0 flex-1 truncate">
+                  <span className="font-semibold text-[var(--text-primary)]">{gift.name} × {gift.quantity}</span>
+                  <span className="block text-[10px] text-[var(--success)]">{gift.promotionName}</span>
+                </div>
+                <span className="font-bold text-[var(--success)]">FREE</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2 border-t border-[var(--border)] pt-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-[var(--text-secondary)]">Subtotal</span>
+              <span className="font-bold">{formatMoney(data.cart.originalSubtotal, data.currency)}</span>
+            </div>
+            {Number(data.cart.discountAmount) > 0 && (
+              <div className="flex justify-between text-xs text-[var(--primary)] font-semibold">
+                <span className="flex items-center gap-1 truncate max-w-[200px]">
+                  <Sparkles className="h-3 w-3 shrink-0" />
+                  {data.cart.appliedPromotion?.promotionName || "Offer Discount"}
+                </span>
+                <span>-{formatMoney(data.cart.discountAmount, data.currency)}</span>
+              </div>
+            )}
+            {Number(data.cart.couponDiscount) > 0 && data.cart.coupon && (
+              <div className="flex justify-between text-xs font-semibold text-[var(--accent)]"><span>{data.cart.coupon.code}</span><span>-{formatMoney(data.cart.couponDiscount, data.currency)}</span></div>
+            )}
+            <div className="flex justify-between text-xs text-[var(--text-secondary)]">
+              <span>Shipping</span>
+              <span>{formatMoney("0", data.currency)}</span>
+            </div>
+            <div className="flex justify-between border-t border-[var(--border)] pt-3 text-base font-extrabold">
+              <span>Total</span>
+              <span className="text-[var(--primary)]">{formatMoney(data.cart.subtotal, data.currency)}</span>
+            </div>
+          </div>
+
+          <div className="rounded-[var(--radius-md)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--text-secondary)]">
+            <p className="font-semibold text-[var(--text-primary)]">Delivering to {selectedAddress ? formatCustomerAddress(selectedAddress) : "your selected address"}</p>
+            <p className="mt-1">{selectedPayment?.name ?? "Select a payment method"}</p>
+          </div>
+          <Button type="submit" className="w-full" isLoading={submitting}>Place Order</Button>
+          <p className="text-center text-[11px] text-[var(--text-muted)]">Prices and totals are confirmed on the server at checkout.</p>
+        </CardContent>
+      </Card>
+    </form>
+  );
+}

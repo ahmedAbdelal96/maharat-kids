@@ -1,0 +1,49 @@
+<svg width="1000" height="900" viewBox="0 0 1000 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="heroPlate1" x1="0" y1="0" x2="480" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+    <linearGradient id="heroPlate2" x1="0" y1="0" x2="360" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="heroShadow" x="120" y="80" width="760" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="30" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <!-- Neutral Ambient Glow -->
+  <circle cx="500" cy="450" r="360" fill="#f1f5f9" />
+
+  <!-- Layer 1: Background Angle Showcase Platform -->
+  <g filter="url(#heroShadow)" transform="translate(260, 180) rotate(-6)">
+    <rect width="480" height="480" rx="36" fill="url(#heroPlate1)" stroke="#e2e8f0" stroke-width="2" />
+    <rect x="40" y="40" width="400" height="280" rx="20" fill="#f1f5f9" />
+    <!-- Product Silhouette Silhouette -->
+    <circle cx="240" cy="180" r="64" fill="#e2e8f0" />
+    <rect x="80" y="355" width="200" height="18" rx="9" fill="#0f172a" opacity="0.8" />
+    <rect x="80" y="390" width="120" height="12" rx="6" fill="#94a3b8" />
+    <rect x="340" y="355" width="100" height="38" rx="10" fill="#64748b" />
+  </g>
+
+  <!-- Layer 2: Foreground Elevated Card -->
+  <g filter="url(#heroShadow)" transform="translate(460, 360) rotate(8)">
+    <rect width="360" height="360" rx="28" fill="url(#heroPlate2)" stroke="#475569" stroke-width="2" />
+    <!-- Neutral package glyph -->
+    <circle cx="180" cy="160" r="70" fill="#ffffff" fill-opacity="0.1" />
+    <path d="M150 140 H210 V190 C210 206 196 220 180 220 C164 220 150 206 150 190 Z" fill="#ffffff" fill-opacity="0.9" />
+    <path d="M165 140 V125 C165 116 171 110 180 110 C189 110 195 116 195 125 V140" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" />
+    <rect x="40" y="270" width="160" height="14" rx="7" fill="#ffffff" fill-opacity="0.8" />
+    <rect x="40" y="298" width="90" height="10" rx="5" fill="#ffffff" fill-opacity="0.5" />
+    <rect x="250" y="270" width="70" height="28" rx="8" fill="#ffffff" fill-opacity="0.2" />
+  </g>
+
+  <!-- Floating Neutral Accent Pills -->
+  <g transform="translate(180, 520)">
+    <rect width="180" height="50" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#heroShadow)" />
+    <circle cx="26" cy="25" r="8" fill="#64748b" />
+    <rect x="46" y="16" width="100" height="8" rx="4" fill="#0f172a" />
+    <rect x="46" y="28" width="60" height="6" rx="3" fill="#94a3b8" />
+  </g>
+</svg>

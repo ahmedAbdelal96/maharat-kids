@@ -1,0 +1,194 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, ShoppingBag, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PriceDisplay } from "./price-display";
+import { ProductImage } from "./product-image";
+import { QuickViewModal } from "./quick-view-modal";
+import type { Product } from "@/modules/products/types";
+import { addProductToCart } from "@/modules/cart/server/actions";
+import { cn } from "@/lib/utils";
+import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
+import { getInventoryState } from "@/modules/inventory/domain/inventory";
+
+export interface ProductCardProps {
+  product: Product;
+  currency?: string;
+  priority?: boolean;
+  onAddToCart?: (product: Product, quantity?: number) => void;
+  initialFavorite?: boolean;
+  onFavoriteChange?: (product: Product, isFavorite: boolean) => void;
+  className?: string;
+}
+
+export function ProductCard({
+  product,
+  currency = "USD",
+  priority = false,
+  onAddToCart,
+  initialFavorite = false,
+  onFavoriteChange,
+  className,
+}: ProductCardProps) {
+  const router = useRouter();
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addedMessage, setAddedMessage] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialFavorite);
+
+  const handleFavoriteChange = (nextValue: boolean) => {
+    setIsFavorite(nextValue);
+    onFavoriteChange?.(product, nextValue);
+  };
+
+  const addItem = async (item: Product, quantity = 1) => {
+    setAddError(null);
+    setAddedMessage(false);
+    if (onAddToCart) {
+      onAddToCart(item, quantity);
+      return;
+    }
+
+    setIsAdding(true);
+    const result = await addProductToCart({ productId: item.id, quantity });
+    setIsAdding(false);
+    if (!result.success) {
+      setAddError(result.error.message);
+      return;
+    }
+    setAddedMessage(true);
+    router.refresh();
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.status !== "ACTIVE" || getInventoryState(product) === "OUT_OF_STOCK") return;
+    void addItem(product);
+  };
+
+  const openQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsQuickViewOpen(true);
+  };
+
+  const hasDiscount =
+    product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
+  const inventoryState = getInventoryState(product);
+  const availability = product.status !== "ACTIVE" ? "Unavailable" : inventoryState === "OUT_OF_STOCK" ? "Out of stock" : inventoryState === "LOW_STOCK" ? `Only ${product.stockQuantity} left` : inventoryState === "UNTRACKED" ? "Available" : "In stock";
+  const isPurchasable = product.status === "ACTIVE" && inventoryState !== "OUT_OF_STOCK";
+
+  return (
+    <>
+      <div
+        className={cn(
+          "group relative flex flex-col rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)] hover:border-[var(--primary)]/30",
+          className,
+        )}
+      >
+        {/* Image Container with Badges and Overlay Actions */}
+        <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface-muted)]">
+          {product.status === "ACTIVE" ? <Link href={`/products/${product.slug}`} className="block"><ProductImage src={product.images[0]?.url} alt={product.name} aspectRatio="square" priority={priority} /></Link> : <ProductImage src={product.images[0]?.url} alt={product.name} aspectRatio="square" priority={priority} />}
+
+          {/* Badges */}
+          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 pointer-events-none z-10">
+            {product.status === "ACTIVE" && (
+              <Badge variant="accent" size="sm" className="shadow-xs font-semibold">
+                New
+              </Badge>
+            )}
+            {hasDiscount && (
+              <Badge variant="destructive" size="sm" className="shadow-xs font-semibold">
+                Sale
+              </Badge>
+            )}
+            {inventoryState === "OUT_OF_STOCK" && (
+              <Badge variant="secondary" size="sm" className="shadow-xs">
+                Out of Stock
+              </Badge>
+            )}
+          </div>
+
+          <FavoriteButton productId={product.id} productName={product.name} isFavorite={isFavorite} isAvailable={product.status === "ACTIVE"} mode="icon" onChange={handleFavoriteChange} className="absolute top-2.5 right-2.5 z-10 h-8 w-8 rounded-full border-0 bg-[var(--surface)]/90 text-[var(--text-secondary)] shadow-xs backdrop-blur-xs transition-all hover:scale-110 hover:text-[var(--destructive)] active:scale-95" />
+
+          {/* Quick Actions Hover Overlay */}
+          <div className="absolute inset-x-2.5 bottom-2.5 hidden sm:flex items-center justify-center gap-2 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 z-10">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={openQuickView}
+              className="bg-[var(--surface)]/95 backdrop-blur-xs shadow-md hover:bg-[var(--surface)] text-xs h-8 gap-1.5 border border-[var(--border)]"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Quick View</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col pt-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              {product.categoryName || "Catalog"}
+            </span>
+            <span className={`text-[11px] ${inventoryState === "OUT_OF_STOCK" ? "text-[var(--destructive)]" : inventoryState === "LOW_STOCK" ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>{availability}</span>
+          </div>
+
+          {product.status === "ACTIVE" ? <Link href={`/products/${product.slug}`} className="mt-1.5"><h3 className="line-clamp-2 text-sm font-bold text-[var(--text-primary)] transition-colors group-hover:text-[var(--primary)]">{product.name}</h3></Link> : <h3 className="mt-1.5 line-clamp-2 text-sm font-bold text-[var(--text-primary)]">{product.name}</h3>}
+
+          {product.ratingSummary && product.ratingSummary.count > 0 && (
+            <div className="mt-1.5 inline-flex w-fit items-center gap-1 text-xs" aria-label={`Rated ${product.ratingSummary.average.toFixed(1)} out of 5 from ${product.ratingSummary.count} reviews`}>
+              <Star className="h-3.5 w-3.5 fill-[var(--accent)] text-[var(--accent)]" aria-hidden="true" />
+              <span className="font-semibold text-[var(--text-primary)]">{product.ratingSummary.average.toFixed(1)}</span>
+              <span className="text-[var(--text-muted)]">({product.ratingSummary.count})</span>
+            </div>
+          )}
+
+          <div className="mt-auto pt-3.5 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)]">
+            <PriceDisplay
+              price={product.price}
+              originalPrice={product.compareAtPrice}
+              currency={currency}
+              size="md"
+            />
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={isAdding || !isPurchasable}
+              onClick={handleAddToCart}
+              className="h-8 px-3 gap-1.5 text-xs shrink-0 shadow-xs cursor-pointer active:scale-[0.97]"
+              aria-label={`Add ${product.name} to cart`}
+            >
+              <ShoppingBag className="h-3.5 w-3.5" />
+              <span>{isAdding ? "Adding..." : addedMessage ? "Added" : isPurchasable ? "Add" : "Unavailable"}</span>
+            </Button>
+          </div>
+          {addError && (
+            <p role="alert" className="mt-2 text-xs text-[var(--destructive)]">
+              {addError}
+            </p>
+          )}
+          {addedMessage && !addError && <p role="status" className="mt-2 text-xs font-semibold text-[var(--success)]">Saved to your cart.</p>}
+        </div>
+      </div>
+
+      <QuickViewModal
+        product={product}
+        isOpen={isQuickViewOpen}
+        onClose={() => setIsQuickViewOpen(false)}
+        onAddToCart={addItem}
+        initialFavorite={isFavorite}
+        onFavoriteChange={handleFavoriteChange}
+      />
+    </>
+  );
+}

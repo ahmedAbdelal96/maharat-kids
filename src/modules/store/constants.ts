@@ -1,0 +1,15 @@
+export const defaultStoreSettings = [
+  { key: "store.name", value: "Your Store" },
+  { key: "store.currency", value: "USD" },
+  { key: "store.language", value: "en" },
+  { key: "store.email", value: "hello@example.com" },
+  { key: "store.phone", value: "" },
+  { key: "seo.title", value: "Your Store" },
+  { key: "seo.description", value: "" },
+  { key: "auth.google.enabled", value: false },
+  { key: "promotions.maxActiveOffers", value: 10 },
+  { key: "promotions.maxHeroOffers", value: 3 },
+  { key: "returns.enabled", value: false },
+  { key: "returns.windowDays", value: 14 },
+  { key: "returns.policyText", value: "" },
+] as const;
