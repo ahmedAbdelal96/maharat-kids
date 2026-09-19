@@ -14,9 +14,8 @@ const prisma = new PrismaClient();
 
 type SeedMediaKind = "categories" | "products";
 
-function seedSvg(label: string, start: string, end: string): string {
-  const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${start}"/><stop offset="1" stop-color="${end}"/></linearGradient></defs><rect width="1200" height="900" fill="url(#g)"/><circle cx="1000" cy="140" r="180" fill="white" fill-opacity=".14"/><circle cx="170" cy="760" r="260" fill="white" fill-opacity=".1"/><text x="600" y="760" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="700">${safeLabel}</text></svg>`;
+function seedSvg(_label: string, start: string, end: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${start}"/><stop offset="1" stop-color="${end}"/></linearGradient></defs><rect width="1200" height="900" fill="url(#g)"/><circle cx="1000" cy="140" r="180" fill="white" fill-opacity=".14"/><circle cx="170" cy="760" r="260" fill="white" fill-opacity=".1"/><path d="M120 180h960M120 720h960" stroke="white" stroke-opacity=".08" stroke-width="3"/></svg>`;
 }
 
 async function ensureSeedMedia(kind: SeedMediaKind, key: string, label: string, start: string, end: string) {
@@ -83,6 +82,35 @@ async function seedCatalog(): Promise<void> {
       create: { slug: category.slug, name: category.name, parentId, description: category.description, imageMediaId: categoryMedia.get(category.slug), isActive: true },
     });
     categoryIds.set(category.slug, saved.id);
+    const arabicCategoryNames: Record<string, string> = {
+      "home-living": "المنزل والمعيشة",
+      furniture: "الأثاث",
+      chairs: "الكراسي",
+      tables: "الطاولات",
+      technology: "التكنولوجيا",
+      "mobile-devices": "الأجهزة المحمولة",
+      smartphones: "الهواتف الذكية",
+      accessories: "الإكسسوارات",
+      fashion: "الأزياء",
+      men: "رجالي",
+      women: "نسائي",
+    };
+    const arabicCategoryDescriptions: Record<string, string> = {
+      "home-living": "قطع عملية ودافئة للمساحات اليومية.",
+      furniture: "أساسيات مريحة لغرف المعيشة والطعام.",
+      chairs: "مقاعد مصممة لأيام طويلة ومريحة.",
+      tables: "أسطح أنيقة للوجبات والعمل والتجمعات.",
+      technology: "تقنيات مفيدة للعمل والمنزل والتنقل.",
+      "mobile-devices": "أساسيات متصلة تواكب يومك.",
+      smartphones: "هواتف عصرية بشاشات مشرقة وبطاريات موثوقة.",
+      accessories: "إضافات صغيرة تجعل استخدام أجهزتك أسهل.",
+      fashion: "قطع عملية ومتنوعة لكل إطلالة.",
+      men: "ملابس وإكسسوارات يومية بتصميمات أنيقة.",
+      women: "قطع سهلة الارتداء للعمل وعطلات نهاية الأسبوع.",
+    };
+    const arabicCategoryDescription = arabicCategoryDescriptions[category.slug] ?? category.description;
+    await prisma.categoryTranslation.upsert({ where: { categoryId_locale: { categoryId: saved.id, locale: "ar" } }, update: { name: arabicCategoryNames[category.slug] ?? category.name, description: arabicCategoryDescription }, create: { categoryId: saved.id, locale: "ar", name: arabicCategoryNames[category.slug] ?? category.name, description: arabicCategoryDescription } });
+    await prisma.categoryTranslation.upsert({ where: { categoryId_locale: { categoryId: saved.id, locale: "en" } }, update: { name: category.name, description: category.description }, create: { categoryId: saved.id, locale: "en", name: category.name, description: category.description } });
   }
 
   const productDefinitions = [
@@ -136,6 +164,30 @@ async function seedCatalog(): Promise<void> {
         ],
       });
     }
+    const arabicProductNames: Record<string, string> = {
+      "oak-lounge-chair": "كرسي استرخاء من خشب البلوط",
+      "solid-wood-dining-table": "طاولة طعام من الخشب الصلب",
+      "pocket-smartphone": "هاتف ذكي صغير",
+      "everyday-phone-case": "جراب هاتف يومي",
+      "mens-utility-jacket": "جاكيت عملي رجالي",
+      "womens-canvas-tote": "حقيبة قماش نسائية",
+      "reading-floor-lamp": "مصباح أرضي للقراءة",
+      "weekend-backpack": "حقيبة ظهر لعطلة نهاية الأسبوع",
+    };
+    const arabicProductDescriptions: Record<string, string> = {
+      "oak-lounge-chair": "إطار من خشب البلوط مع مقعد منسوج مريح للزوايا الهادئة.",
+      "solid-wood-dining-table": "طاولة طعام متينة بتصميم أنيق للوجبات المشتركة.",
+      "pocket-smartphone": "هاتف سريع الاستجابة بشاشة مشرقة للتواصل والترفيه اليومي.",
+      "everyday-phone-case": "جراب خفيف للحماية مع قبضة مريحة.",
+      "mens-utility-jacket": "طبقة عملية بجيوب مفيدة وقصة مريحة.",
+      "womens-canvas-tote": "حقيبة قماش متينة للاستخدام اليومي وتتسع لاحتياجاتك.",
+      "reading-floor-lamp": "إضاءة ناعمة وموجهة للقراءة والاسترخاء والعمل.",
+      "weekend-backpack": "حقيبة ظهر منظمة للرحلات القصيرة والأيام المزدحمة.",
+    };
+    const arabicProductDescription = arabicProductDescriptions[product.slug] ?? product.description;
+    const savedProduct = await prisma.product.findUniqueOrThrow({ where: { slug: product.slug }, select: { id: true } });
+    await prisma.productTranslation.upsert({ where: { productId_locale: { productId: savedProduct.id, locale: "ar" } }, update: { name: arabicProductNames[product.slug] ?? product.name, shortDescription: arabicProductDescription, description: arabicProductDescription }, create: { productId: savedProduct.id, locale: "ar", name: arabicProductNames[product.slug] ?? product.name, shortDescription: arabicProductDescription, description: arabicProductDescription } });
+    await prisma.productTranslation.upsert({ where: { productId_locale: { productId: savedProduct.id, locale: "en" } }, update: { name: product.name, shortDescription: product.description, description: product.description }, create: { productId: savedProduct.id, locale: "en", name: product.name, shortDescription: product.description, description: product.description } });
   }
 }
 

@@ -14,7 +14,8 @@ export function isSafeReturnTo(value: string | null | undefined): value is strin
   try {
     const parsed = new URL(value, "https://internal.local");
     const allowed = ["/products", "/categories", "/cart", "/checkout", "/account", "/admin", "/login", "/register", "/forgot-password", "/reset-password"];
-    return parsed.origin === "https://internal.local" && (parsed.pathname === "/" || allowed.some((prefix) => parsed.pathname === prefix || parsed.pathname.startsWith(`${prefix}/`)));
+    const path = parsed.pathname.replace(/^\/(?:ar|en)(?=\/|$)/, "") || "/";
+    return parsed.origin === "https://internal.local" && (path === "/" || allowed.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)));
   } catch {
     return false;
   }

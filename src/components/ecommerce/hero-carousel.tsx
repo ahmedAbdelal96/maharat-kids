@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight, ChevronLeft, ChevronRight, Gift, Percent, Sparkles, Tag } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Countdown } from "@/components/ecommerce/countdown";
@@ -51,6 +52,7 @@ export function HeroCarousel({
   fallbackImageUrl?: string | null;
 }) {
   const shouldReduceMotion = useReducedMotion();
+  const t = useTranslations("storefront");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const totalSlides = promotions.length;
@@ -84,9 +86,9 @@ export function HeroCarousel({
               {fallbackStoreName}
             </div>
             <h1 className="text-4xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl text-[var(--text-primary)]">
-              Find what fits
+              {t("heroTitle")}
               <br />
-              <span className="text-[var(--primary)]">your everyday.</span>
+              <span className="text-[var(--primary)]">{t("heroAccent")}</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
               {fallbackDescription}
@@ -94,13 +96,13 @@ export function HeroCarousel({
             <div className="flex flex-wrap gap-3 pt-2">
               <Link href="/products">
                 <Button size="lg" className="gap-2">
-                  Browse Catalog
+                  {t("browseCatalog")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/categories">
                 <Button variant="outline" size="lg">
-                  View Categories
+                  {t("viewCategories")}
                 </Button>
               </Link>
             </div>
@@ -134,7 +136,7 @@ export function HeroCarousel({
   return (
     <section
       aria-roledescription="carousel"
-      aria-label="Promotions and Featured Campaigns"
+      aria-label={t("promotionsAndCampaigns")}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--surface-card)] p-8 shadow-[var(--shadow-card)] sm:p-12 lg:p-16"
@@ -170,13 +172,13 @@ export function HeroCarousel({
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link href={`/offers/${currentPromo.slug}`}>
               <Button size="lg" className="gap-2">
-                Claim Offer
+                {t("claimOffer")}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/offers">
               <Button variant="outline" size="lg">
-                View All Offers
+                {t("viewAllOffers")}
               </Button>
             </Link>
           </div>
@@ -221,7 +223,7 @@ export function HeroCarousel({
                   onClick={() => setCurrentIndex(idx)}
                   role="tab"
                   aria-selected={isActive}
-                  aria-label={`Slide ${idx + 1} of ${totalSlides}: ${p.name}`}
+                  aria-label={`${idx + 1} / ${totalSlides}: ${p.name}`}
                   className={`h-2 rounded-full transition-all duration-300 ${
                     isActive
                       ? "w-8 bg-[var(--primary)]"
@@ -236,14 +238,14 @@ export function HeroCarousel({
           <div className="flex items-center gap-2">
             <button
               onClick={prevSlide}
-              aria-label="Previous promotional slide"
+              aria-label={t("previousSlide")}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={nextSlide}
-              aria-label="Next promotional slide"
+              aria-label={t("nextSlide")}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
             >
               <ChevronRight className="h-4 w-4" />

@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTransition } from "react";
 import { Bell, Search, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/dropdown";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { logout } from "@/modules/auth/server/actions";
+import { LocaleSwitcher } from "@/components/shared/locale-switcher";
+import { useTranslations } from "next-intl";
 
 export interface AdminHeaderProps {
   onToggleMobileSidebar: () => void;
@@ -22,6 +24,7 @@ export function AdminHeader({
   sessionId,
 }: AdminHeaderProps) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [, startLogout] = useTransition();
 
   function handleLogout() {
@@ -38,21 +41,21 @@ export function AdminHeader({
   const userMenuItems = [
     {
       key: "profile",
-      label: "Account Settings",
+      label: t("accountSettings"),
       onClick: () => {
         router.push("/admin/settings");
       },
     },
     {
       key: "live-store",
-      label: "View Public Store",
+      label: t("publicStore"),
       onClick: () => {
         router.push("/");
       },
     },
     {
       key: "logout",
-      label: "Sign Out",
+      label: t("logout"),
       destructive: true,
       onClick: handleLogout,
     },
@@ -67,7 +70,7 @@ export function AdminHeader({
           size="icon"
           onClick={onToggleMobileSidebar}
           className="lg:hidden h-9 w-9"
-          aria-label="Toggle admin sidebar"
+          aria-label={t("console")}
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -75,7 +78,7 @@ export function AdminHeader({
         {/* Global Quick Search Mockup */}
         <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)]/50 px-3.5 py-1.5 text-xs text-[var(--text-muted)] w-64 lg:w-80">
           <Search className="h-3.5 w-3.5" />
-          <span className="flex-1">Search orders, products, customers...</span>
+          <span className="flex-1">{t("search")}</span>
           <kbd className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-mono border border-[var(--border)]">
             ⌘K
           </kbd>
@@ -84,6 +87,7 @@ export function AdminHeader({
 
       {/* Right Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
+        <LocaleSwitcher />
         <ThemeToggle />
 
         {/* Notifications Icon with indicator */}
@@ -91,7 +95,7 @@ export function AdminHeader({
           variant="ghost"
           size="icon"
           className="relative h-9 w-9 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          aria-label="View notifications"
+          aria-label={t("notifications")}
         >
           <Bell className="h-4 w-4" />
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[var(--destructive)] ring-2 ring-[var(--surface)]" />
@@ -109,7 +113,7 @@ export function AdminHeader({
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-bold">
                 {userName.charAt(0)}
               </div>
-              <div className="hidden md:flex flex-col text-left">
+              <div className="hidden md:flex flex-col text-start">
                 <span className="text-xs font-semibold text-[var(--text-primary)] leading-none">
                   {userName}
                 </span>

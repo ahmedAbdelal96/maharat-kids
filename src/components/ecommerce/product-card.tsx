@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { Eye, ShoppingBag, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { addProductToCart } from "@/modules/cart/server/actions";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { getInventoryState } from "@/modules/inventory/domain/inventory";
+import { useTranslations } from "next-intl";
 
 export interface ProductCardProps {
   product: Product;
@@ -35,6 +36,8 @@ export function ProductCard({
   className,
 }: ProductCardProps) {
   const router = useRouter();
+  const t = useTranslations("common.catalog");
+  const availabilityT = useTranslations("common.availability");
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export function ProductCard({
   const hasDiscount =
     product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
   const inventoryState = getInventoryState(product);
-  const availability = product.status !== "ACTIVE" ? "Unavailable" : inventoryState === "OUT_OF_STOCK" ? "Out of stock" : inventoryState === "LOW_STOCK" ? `Only ${product.stockQuantity} left` : inventoryState === "UNTRACKED" ? "Available" : "In stock";
+  const availability = product.status !== "ACTIVE" ? t("unavailable") : inventoryState === "OUT_OF_STOCK" ? availabilityT("outOfStock") : inventoryState === "LOW_STOCK" ? `${product.stockQuantity} ${t("products")}` : inventoryState === "UNTRACKED" ? availabilityT("available") : availabilityT("inStock");
   const isPurchasable = product.status === "ACTIVE" && inventoryState !== "OUT_OF_STOCK";
 
   return (
@@ -100,17 +103,17 @@ export function ProductCard({
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 pointer-events-none z-10">
             {product.status === "ACTIVE" && (
               <Badge variant="accent" size="sm" className="shadow-xs font-semibold">
-                New
+                {t("new")}
               </Badge>
             )}
             {hasDiscount && (
               <Badge variant="destructive" size="sm" className="shadow-xs font-semibold">
-                Sale
+                {t("sale")}
               </Badge>
             )}
             {inventoryState === "OUT_OF_STOCK" && (
               <Badge variant="secondary" size="sm" className="shadow-xs">
-                Out of Stock
+                {t("outOfStock")}
               </Badge>
             )}
           </div>
@@ -127,7 +130,7 @@ export function ProductCard({
               className="bg-[var(--surface)]/95 backdrop-blur-xs shadow-md hover:bg-[var(--surface)] text-xs h-8 gap-1.5 border border-[var(--border)]"
             >
               <Eye className="h-3.5 w-3.5" />
-              <span>Quick View</span>
+              <span>{t("quickView")}</span>
             </Button>
           </div>
         </div>
@@ -136,7 +139,7 @@ export function ProductCard({
         <div className="flex flex-1 flex-col pt-3.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              {product.categoryName || "Catalog"}
+              {product.categoryName || t("category")}
             </span>
             <span className={`text-[11px] ${inventoryState === "OUT_OF_STOCK" ? "text-[var(--destructive)]" : inventoryState === "LOW_STOCK" ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>{availability}</span>
           </div>
@@ -144,7 +147,7 @@ export function ProductCard({
           {product.status === "ACTIVE" ? <Link href={`/products/${product.slug}`} className="mt-1.5"><h3 className="line-clamp-2 text-sm font-bold text-[var(--text-primary)] transition-colors group-hover:text-[var(--primary)]">{product.name}</h3></Link> : <h3 className="mt-1.5 line-clamp-2 text-sm font-bold text-[var(--text-primary)]">{product.name}</h3>}
 
           {product.ratingSummary && product.ratingSummary.count > 0 && (
-            <div className="mt-1.5 inline-flex w-fit items-center gap-1 text-xs" aria-label={`Rated ${product.ratingSummary.average.toFixed(1)} out of 5 from ${product.ratingSummary.count} reviews`}>
+            <div className="mt-1.5 inline-flex w-fit items-center gap-1 text-xs" aria-label={t("ratingAria", { rating: product.ratingSummary.average.toFixed(1), count: product.ratingSummary.count })}>
               <Star className="h-3.5 w-3.5 fill-[var(--accent)] text-[var(--accent)]" aria-hidden="true" />
               <span className="font-semibold text-[var(--text-primary)]">{product.ratingSummary.average.toFixed(1)}</span>
               <span className="text-[var(--text-muted)]">({product.ratingSummary.count})</span>
@@ -166,10 +169,10 @@ export function ProductCard({
               disabled={isAdding || !isPurchasable}
               onClick={handleAddToCart}
               className="h-8 px-3 gap-1.5 text-xs shrink-0 shadow-xs cursor-pointer active:scale-[0.97]"
-              aria-label={`Add ${product.name} to cart`}
+              aria-label={`${t("add")} ${product.name}`}
             >
               <ShoppingBag className="h-3.5 w-3.5" />
-              <span>{isAdding ? "Adding..." : addedMessage ? "Added" : isPurchasable ? "Add" : "Unavailable"}</span>
+              <span>{isAdding ? t("adding") : addedMessage ? t("added") : isPurchasable ? t("add") : t("unavailable")}</span>
             </Button>
           </div>
           {addError && (
@@ -177,7 +180,7 @@ export function ProductCard({
               {addError}
             </p>
           )}
-          {addedMessage && !addError && <p role="status" className="mt-2 text-xs font-semibold text-[var(--success)]">Saved to your cart.</p>}
+          {addedMessage && !addError && <p role="status" className="mt-2 text-xs font-semibold text-[var(--success)]">{t("savedToCart")}</p>}
         </div>
       </div>
 

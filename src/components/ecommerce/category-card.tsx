@@ -1,8 +1,9 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import type { Category } from "@/modules/categories/types";
 import { cn } from "@/lib/utils";
+import { getTranslations } from "next-intl/server";
 
 export interface CategoryCardProps {
   category: Category;
@@ -10,7 +11,8 @@ export interface CategoryCardProps {
   className?: string;
 }
 
-export function CategoryCard({ category, priority = false, className }: CategoryCardProps) {
+export async function CategoryCard({ category, priority = false, className }: CategoryCardProps) {
+  const t = await getTranslations("common.catalog");
   return (
     <Link
       href={`/categories/${category.slug}`}
@@ -35,14 +37,14 @@ export function CategoryCard({ category, priority = false, className }: Category
         <div>
           <span className="inline-block px-2 py-0.5 rounded-full bg-[var(--text-inverse)]/15 backdrop-blur-xs text-[11px] font-semibold text-[var(--text-inverse)] mb-1.5">
             {category.childCount > 0
-              ? `${category.childCount} ${category.childCount === 1 ? "collection" : "collections"}`
-              : `${category.productCount} products`}
+              ? `${category.childCount} ${category.childCount === 1 ? t("collection") : t("collections")}`
+              : `${category.productCount} ${t("products")}`}
           </span>
           <h3 className="text-lg sm:text-xl font-bold text-[var(--text-inverse)] tracking-tight">
             {category.name}
           </h3>
           <p className="mt-0.5 line-clamp-1 text-xs text-[var(--text-inverse)]/80">
-            {category.description || "Browse this category"}
+            {category.description || t("browseCategory")}
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 import { Pencil, Plus, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

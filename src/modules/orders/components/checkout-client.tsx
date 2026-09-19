@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Check, CreditCard, MapPin, Sparkles, UserRound } from "lucide-react";
 
@@ -11,13 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ProductImage } from "@/components/ecommerce/product-image";
-import { formatMoney } from "@/lib/formatters";
+import { formatMoney as formatMoneyBase } from "@/lib/formatters";
+import { localeToIntl } from "@/config/locale";
 import { formatCustomerAddress } from "@/modules/customers/address";
 import { placeOrder } from "../server/actions";
 import type { CheckoutData } from "../types";
 
 export function CheckoutClient({ data }: { data: CheckoutData }) {
   const router = useRouter();
+  const locale = useLocale();
+  const formatMoney = (amount: string | number, currencyCode = data.currency) => formatMoneyBase(amount, currencyCode, localeToIntl(locale === "en" ? "en" : "ar"));
   const reduceMotion = useReducedMotion();
   const [addressId, setAddressId] = useState(data.addresses.find((address) => address.isDefault)?.id ?? data.addresses[0]?.id ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(data.paymentMethods[0]?.id ?? "");

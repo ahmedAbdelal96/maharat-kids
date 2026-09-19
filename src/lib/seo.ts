@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { env } from "@/config/env";
 import type { Product } from "@/modules/products/types";
 import type { StoreSettings } from "@/modules/store/types";
+import { locales, type Locale } from "@/config/locale";
 
 export type BreadcrumbItem = {
   name: string;
@@ -11,6 +12,21 @@ export type BreadcrumbItem = {
 
 export function absoluteUrl(path: string): string {
   return new URL(path, env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+export function localizedUrl(path: string, locale: Locale): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return absoluteUrl(`/${locale}${normalized === "/" ? "" : normalized}`);
+}
+
+export function localizedAlternates(path: string, currentLocale: Locale) {
+  return {
+    canonical: localizedUrl(path, currentLocale),
+    languages: {
+      ...Object.fromEntries(locales.map((locale) => [locale, localizedUrl(path, locale)])),
+      "x-default": localizedUrl(path, "ar"),
+    },
+  };
 }
 
 export function storeMetadata(settings: StoreSettings, overrides: Metadata = {}): Metadata {
@@ -56,7 +72,7 @@ export function organizationJsonLd(settings: StoreSettings) {
   };
 }
 
-export function productJsonLd(product: Product, settings: StoreSettings, rating?: { average: number; count: number }) {
+export function productJsonLd(product: Product, settings: StoreSettings, rating?: { average: number; count: number }, locale: Locale = "ar") {
   const available = !product.trackInventory || product.stockQuantity > 0;
 
   return {
@@ -64,12 +80,12 @@ export function productJsonLd(product: Product, settings: StoreSettings, rating?
     "@type": "Product",
     name: product.name,
     description: product.description || product.shortDescription || `${product.name} from ${settings.name}.`,
-    url: absoluteUrl(`/products/${product.slug}`),
+    url: localizedUrl(`/products/${product.slug}`, locale),
     image: product.images.filter((image) => image.url).map((image) => absoluteUrl(image.url)),
     ...(product.categoryName ? { category: product.categoryName } : {}),
     offers: {
       "@type": "Offer",
-      url: absoluteUrl(`/products/${product.slug}`),
+      url: localizedUrl(`/products/${product.slug}`, locale),
       priceCurrency: settings.currency,
       price: product.price,
       availability: `https://schema.org/${available ? "InStock" : "OutOfStock"}`,

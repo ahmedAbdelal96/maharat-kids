@@ -3,6 +3,7 @@
 import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
@@ -13,6 +14,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, error, icon, showPasswordToggle, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
+    const t = useTranslations("auth");
 
     const isPasswordField = type === "password";
     const effectiveType = isPasswordField && showPassword ? "text" : type;
@@ -45,7 +47,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               className="absolute right-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
             >
               {showPassword ? (

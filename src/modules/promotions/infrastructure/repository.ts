@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Prisma, PrismaClient } from "@prisma/client";
+import { getLocale } from "next-intl/server";
 import { getPrismaClient } from "@/database/prisma";
 import type {
   CreatePromotionInput,
@@ -54,6 +55,9 @@ const promotionInclude = {
       orderPromotions: true,
     },
   },
+  translations: {
+    select: { locale: true, name: true, shortDescription: true, description: true },
+  },
 } as const;
 
 type PromotionRecord = Prisma.PromotionGetPayload<{ include: typeof promotionInclude }>;
@@ -77,13 +81,16 @@ function toProductRef(prod: PromotionRecord["qualifyingProduct"] | PromotionReco
   };
 }
 
-function toPromotion(record: PromotionRecord, now = new Date()): Promotion {
+async function requestLocale(): Promise<"ar" | "en"> { try { return (await getLocale()) === "en" ? "en" : "ar"; } catch { return "ar"; } }
+
+function toPromotion(record: PromotionRecord, now = new Date(), locale: "ar" | "en" = "ar"): Promotion {
+  const translation = record.translations?.find((item) => item.locale === locale) ?? record.translations?.find((item) => item.locale === "ar");
   return {
     id: record.id,
-    name: record.name,
+    name: translation?.name ?? record.name,
     slug: record.slug,
-    shortDescription: record.shortDescription,
-    description: record.description,
+    shortDescription: translation?.shortDescription ?? record.shortDescription,
+    description: translation?.description ?? record.description,
     type: record.type,
     isActive: record.isActive,
     showInHero: record.showInHero,
@@ -111,12 +118,13 @@ function toPromotion(record: PromotionRecord, now = new Date()): Promotion {
   };
 }
 
-function toSummary(record: PromotionRecord, now = new Date()): PromotionSummary {
+function toSummary(record: PromotionRecord, now = new Date(), locale: "ar" | "en" = "ar"): PromotionSummary {
+  const translation = record.translations?.find((item) => item.locale === locale) ?? record.translations?.find((item) => item.locale === "ar");
   return {
     id: record.id,
-    name: record.name,
+    name: translation?.name ?? record.name,
     slug: record.slug,
-    shortDescription: record.shortDescription,
+    shortDescription: translation?.shortDescription ?? record.shortDescription,
     type: record.type,
     isActive: record.isActive,
     showInHero: record.showInHero,
@@ -158,6 +166,7 @@ export class PrismaPromotionRepository implements PromotionRepository {
   constructor(private readonly db: PrismaClient = getPrismaClient()) {}
 
   async findAll(query: PromotionQuery = {}, now = new Date()): Promise<{ items: PromotionSummary[]; total: number }> {
+    const locale = await requestLocale();
     const page = Math.max(1, query.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 25));
     const search = query.search?.trim();
@@ -202,30 +211,33 @@ export class PrismaPromotionRepository implements PromotionRepository {
     ]);
 
     return {
-      items: records.map((r) => toSummary(r, now)),
+      items: records.map((r) => toSummary(r, now, locale)),
       total,
     };
   }
 
   async findById(id: string, now = new Date()): Promise<Promotion | null> {
+    const locale = await requestLocale();
     const record = await this.db.promotion.findUnique({
       where: { id },
       include: promotionInclude,
     });
-    return record ? toPromotion(record, now) : null;
+    return record ? toPromotion(record, now, locale) : null;
   }
 
   async findBySlug(slug: string, activeOnly = false, now = new Date()): Promise<Promotion | null> {
+    const locale = await requestLocale();
     const record = await this.db.promotion.findUnique({
       where: { slug },
       include: promotionInclude,
     });
     if (!record) return null;
     if (activeOnly && !isPromotionCurrentlyActive(record, now)) return null;
-    return toPromotion(record, now);
+    return toPromotion(record, now, locale);
   }
 
   async findEligibleHeroPromotions(limit: number, now = new Date()): Promise<Promotion[]> {
+    const locale = await requestLocale();
     const records = await this.db.promotion.findMany({
       where: {
         isActive: true,
@@ -237,10 +249,11 @@ export class PrismaPromotionRepository implements PromotionRepository {
       orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
       take: limit,
     });
-    return records.map((r) => toPromotion(r, now));
+    return records.map((r) => toPromotion(r, now, locale));
   }
 
   async findEligiblePublicOffers(now = new Date()): Promise<Promotion[]> {
+    const locale = await requestLocale();
     const records = await this.db.promotion.findMany({
       where: {
         isActive: true,
@@ -251,10 +264,11 @@ export class PrismaPromotionRepository implements PromotionRepository {
       include: promotionInclude,
       orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
-    return records.map((r) => toPromotion(r, now));
+    return records.map((r) => toPromotion(r, now, locale));
   }
 
   async findParticipatingPromotionForProduct(productId: string, now = new Date()): Promise<Promotion | null> {
+    const locale = await requestLocale();
     const record = await this.db.promotion.findFirst({
       where: {
         isActive: true,
@@ -272,7 +286,7 @@ export class PrismaPromotionRepository implements PromotionRepository {
       include: promotionInclude,
       orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
-    return record ? toPromotion(record, now) : null;
+    return record ? toPromotion(record, now, locale) : null;
   }
 
   async create(input: CreatePromotionInput & { slug: string }): Promise<Promotion> {

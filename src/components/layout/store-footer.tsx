@@ -1,16 +1,19 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { appConfig } from "@/config/app.config";
+import { getTranslations } from "next-intl/server";
 
 export interface StoreFooterProps {
   storeName?: string;
   description?: string;
 }
 
-export function StoreFooter({
+export async function StoreFooter({
   storeName = appConfig.name,
   description = appConfig.description,
 }: StoreFooterProps) {
   const currentYear = new Date().getFullYear();
+  const t = await getTranslations("navigation");
+  const actions = await getTranslations("common.actions");
 
   return (
     <footer className="w-full border-t border-[var(--border)] bg-[var(--surface-card)] text-[var(--foreground)] mt-auto">
@@ -32,17 +35,17 @@ export function StoreFooter({
           {/* Navigation Links */}
           <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-              Catalog
+              {t("categories")}
             </h4>
             <ul className="space-y-1.5 text-xs text-[var(--text-secondary)]">
               <li>
                 <Link href="/products" className="hover:text-[var(--primary)] transition-colors">
-                  All Products
+                  {t("products")}
                 </Link>
               </li>
               <li>
                 <Link href="/categories" className="hover:text-[var(--primary)] transition-colors">
-                  Categories
+                  {t("categories")}
                 </Link>
               </li>
             </ul>
@@ -51,17 +54,17 @@ export function StoreFooter({
           {/* Customer Area */}
           <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-              Customer Area
+              {t("account")}
             </h4>
             <ul className="space-y-1.5 text-xs text-[var(--text-secondary)]">
               <li>
                 <Link href="/account" className="hover:text-[var(--primary)] transition-colors">
-                  My Account
+                  {t("account")}
                 </Link>
               </li>
               <li>
                 <Link href="/cart" className="hover:text-[var(--primary)] transition-colors">
-                  Shopping Cart
+                  {t("cart")}
                 </Link>
               </li>
             </ul>
@@ -70,17 +73,17 @@ export function StoreFooter({
           {/* Management */}
           <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-              Management
+              {t("admin")}
             </h4>
             <ul className="space-y-1.5 text-xs text-[var(--text-secondary)]">
               <li>
                 <Link href="/admin" className="hover:text-[var(--primary)] transition-colors">
-                  Admin Dashboard
+                  {t("admin")}
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="hover:text-[var(--primary)] transition-colors">
-                  Admin Sign In
+                  {actions("signIn")}
                 </Link>
               </li>
             </ul>
@@ -89,9 +92,9 @@ export function StoreFooter({
 
         {/* Bottom Bar */}
         <div className="mt-10 pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-muted)]">
-          <p>© {currentYear} {storeName}. All rights reserved.</p>
+          <p>© {currentYear} {storeName}.</p>
           <div className="flex items-center gap-4">
-            <span className="text-[11px] text-[var(--text-secondary)]">Modern Reusable Ecommerce Template</span>
+            <span className="text-[11px] text-[var(--text-secondary)]">{description}</span>
           </div>
         </div>
       </div>

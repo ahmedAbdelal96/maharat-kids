@@ -10,11 +10,13 @@ import { getCustomerFavorites } from "@/modules/favorites/server/queries";
 import { getCustomerNotifications } from "@/modules/notifications/server/queries";
 import { getPublicStoreSettings } from "@/modules/store/server/queries";
 import { getCustomerReviews } from "@/modules/reviews/server/queries";
+import { getTranslations } from "next-intl/server";
 
 import { CustomerAccountContent, type AccountSection } from "./customer-account-content";
 
 export async function CustomerAccountPage({ initialSection = "profile" }: { initialSection?: AccountSection }) {
   const result = await requireCustomer();
+  const t = await getTranslations("account");
 
   if (!result.success) {
     if (result.error.code === "UNAUTHORIZED") redirect(loginPathForReturnTo(initialSection === "notifications" ? "/account/notifications" : "/account"));
@@ -40,7 +42,7 @@ export async function CustomerAccountPage({ initialSection = "profile" }: { init
         <div className="flex min-w-0 items-center gap-3.5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] text-base font-extrabold text-[var(--primary-foreground)]">{displayName.charAt(0).toUpperCase()}</div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-extrabold tracking-tight text-[var(--text-primary)]">My account</h1><Badge variant="secondary" size="sm" className="font-semibold text-[10px]">{user.status}</Badge></div>
+            <div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-extrabold tracking-tight text-[var(--text-primary)]">{t("title")}</h1><Badge variant="secondary" size="sm" className="font-semibold text-[10px]">{user.status}</Badge></div>
             <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">{displayName} · {profile.email}</p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { Truck, ShieldCheck, RefreshCw, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface TrustItem {
   icon: typeof Truck;
@@ -37,6 +38,13 @@ export function TrustSection({
   items?: TrustItem[];
   className?: string;
 }) {
+  const t = useTranslations("storefront");
+  const translatedItems = [
+    { title: t("reliableShipping"), description: t("shippingDescription") },
+    { title: t("secureCheckout"), description: t("checkoutDescription") },
+    { title: t("easyReturns"), description: t("returnsDescription") },
+    { title: t("customerSupport"), description: t("supportDescription") },
+  ];
   return (
     <div
       className={cn(
@@ -46,6 +54,7 @@ export function TrustSection({
     >
       {items.map((item, index) => {
         const Icon = item.icon;
+        const copy = translatedItems[index] ?? item;
         return (
           <div
             key={index}
@@ -56,10 +65,10 @@ export function TrustSection({
             </div>
             <div>
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">
-                {item.title}
+                {copy.title}
               </h4>
               <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed">
-                {item.description}
+                {copy.description}
               </p>
             </div>
           </div>

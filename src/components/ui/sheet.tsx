@@ -4,6 +4,7 @@ import { useEffect, useRef, useId, type ReactNode } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface SheetProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function Sheet({
   const sheetRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const shouldReduceMotion = useReducedMotion();
+  const t = useTranslations("common.actions");
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,7 +133,7 @@ export function Sheet({
               <button
                 onClick={onClose}
                 className="rounded-[var(--radius-sm)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors"
-                aria-label="Close drawer"
+                aria-label={t("close")}
               >
                 <X className="h-4 w-4" />
               </button>

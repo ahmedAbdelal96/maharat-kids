@@ -9,12 +9,15 @@ export interface DropdownItem {
   label: string;
   icon?: ReactNode;
   destructive?: boolean;
+  divider?: boolean;
   onClick: () => void;
 }
 
 export interface DropdownProps {
   trigger: ReactNode;
   items: DropdownItem[];
+  header?: ReactNode;
+  footer?: ReactNode;
   align?: "left" | "right";
   className?: string;
 }
@@ -22,6 +25,8 @@ export interface DropdownProps {
 export function Dropdown({
   trigger,
   items,
+  header,
+  footer,
   align = "right",
   className,
 }: DropdownProps) {
@@ -84,32 +89,48 @@ export function Dropdown({
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -4 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              "absolute z-50 mt-2 min-w-[160px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-dropdown)] focus:outline-none",
+              "absolute z-50 mt-2 min-w-[200px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-dropdown)] focus:outline-none",
               align === "right" ? "right-0" : "left-0",
               className,
             )}
           >
+            {header && (
+              <div className="border-b border-[var(--border)] px-2.5 py-2 mb-1">
+                {header}
+              </div>
+            )}
+
             {items.map((item) => (
-              <button
-                key={item.key}
-                role="menuitem"
-                onClick={() => {
-                  item.onClick();
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-colors text-left select-none cursor-pointer focus:outline-none focus:bg-[var(--surface-muted)]",
-                  item.destructive
-                    ? "text-[var(--destructive)] hover:bg-[var(--destructive-subtle)]"
-                    : "text-[var(--text-primary)] hover:bg-[var(--surface-muted)]",
+              <div key={item.key}>
+                {item.divider && (
+                  <div className="my-1 border-t border-[var(--border)]" />
                 )}
-              >
-                {item.icon && (
-                  <span className="shrink-0 text-current">{item.icon}</span>
-                )}
-                <span>{item.label}</span>
-              </button>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    item.onClick();
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-xs sm:text-sm font-medium transition-colors text-left select-none cursor-pointer focus:outline-none focus:bg-[var(--surface-muted)]",
+                    item.destructive
+                      ? "text-[var(--destructive)] hover:bg-[var(--destructive-subtle)]"
+                      : "text-[var(--text-primary)] hover:bg-[var(--surface-muted)]",
+                  )}
+                >
+                  {item.icon && (
+                    <span className="shrink-0 text-current">{item.icon}</span>
+                  )}
+                  <span>{item.label}</span>
+                </button>
+              </div>
             ))}
+
+            {footer && (
+              <div className="border-t border-[var(--border)] px-2.5 py-2 mt-1">
+                {footer}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PrismaClient } from "@prisma/client";
+import { getLocale } from "next-intl/server";
 import { getPrismaClient } from "@/database/prisma";
 import { getInventoryState } from "@/modules/inventory/domain/inventory";
 import { getApprovedRatingSummaries } from "@/modules/reviews/infrastructure/rating-aggregation";
@@ -16,11 +17,12 @@ type ProductSuggestionRecord = {
   trackInventory: boolean;
   stockQuantity: number;
   category: { name: string; slug: string } | null;
+  translations?: { locale: "ar" | "en"; name: string; shortDescription: string | null; description: string | null }[];
   images: Array<{ url: string | null; media: { url: string } | null }>;
 };
 
 export interface SearchRepository {
-  findSuggestions(query: string): Promise<SearchSuggestions>;
+  findSuggestions(query: string, locale?: "ar" | "en"): Promise<SearchSuggestions>;
 }
 
 function imageUrl(images: ProductSuggestionRecord["images"]): string | null {
@@ -38,9 +40,13 @@ function toAvailability(product: Pick<ProductSuggestionRecord, "trackInventory" 
 export class PrismaSearchRepository implements SearchRepository {
   constructor(private readonly db: PrismaClient = getPrismaClient()) {}
 
-  async findSuggestions(rawQuery: string): Promise<SearchSuggestions> {
+  async findSuggestions(rawQuery: string, requestedLocale?: "ar" | "en"): Promise<SearchSuggestions> {
     const query = normalizeSearchQuery(rawQuery);
     if (query.length < 2) return { query, products: [], categories: [] };
+    let locale: "ar" | "en" = requestedLocale ?? "ar";
+    if (!requestedLocale) {
+      try { locale = (await getLocale()) === "en" ? "en" : "ar"; } catch { /* API requests without a locale use the default. */ }
+    }
 
     const contains = { contains: query, mode: "insensitive" as const };
     const [products, categories] = await Promise.all([
@@ -51,6 +57,7 @@ export class PrismaSearchRepository implements SearchRepository {
             { name: contains },
             { shortDescription: contains },
             { description: contains },
+            { translations: { some: { locale, name: contains } } },
             { category: { is: { isActive: true, name: contains } } },
           ],
         },
@@ -63,6 +70,7 @@ export class PrismaSearchRepository implements SearchRepository {
           trackInventory: true,
           stockQuantity: true,
           category: { select: { name: true, slug: true } },
+          translations: { select: { locale: true, name: true, shortDescription: true, description: true } },
           images: {
             orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
             take: 1,
@@ -72,18 +80,21 @@ export class PrismaSearchRepository implements SearchRepository {
         take: 24,
       }),
       this.db.category.findMany({
-        where: { isActive: true, name: contains },
-        select: { id: true, name: true, slug: true, parent: { select: { name: true } } },
+        where: { isActive: true, OR: [{ name: contains }, { translations: { some: { locale, name: contains } } }] },
+        select: { id: true, name: true, slug: true, parent: { select: { name: true } }, translations: { select: { locale: true, name: true } } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         take: 8,
       }),
     ]);
 
     const summaries = await getApprovedRatingSummaries(this.db, products.map((product) => product.id));
+    const displayName = (record: { name: string; translations?: { locale: "ar" | "en"; name: string }[] }) => record.translations?.find((item) => item.locale === locale)?.name ?? record.translations?.find((item) => item.locale === "ar")?.name ?? record.name;
     const sortedProducts = [...products].sort((left, right) => {
-      const leftRank = Math.min(searchRank(left.name, query), left.category ? searchRank(left.category.name, query) + 1 : 99);
-      const rightRank = Math.min(searchRank(right.name, query), right.category ? searchRank(right.category.name, query) + 1 : 99);
-      return leftRank - rightRank || left.name.localeCompare(right.name);
+      const leftName = displayName(left);
+      const rightName = displayName(right);
+      const leftRank = Math.min(searchRank(leftName, query), left.category ? searchRank(left.category.name, query) + 1 : 99);
+      const rightRank = Math.min(searchRank(rightName, query), right.category ? searchRank(right.category.name, query) + 1 : 99);
+      return leftRank - rightRank || leftName.localeCompare(rightName);
     }).slice(0, 6);
 
     const productSuggestions: SearchSuggestionProduct[] = sortedProducts.map((product) => {
@@ -92,7 +103,7 @@ export class PrismaSearchRepository implements SearchRepository {
         type: "product",
         id: product.id,
         slug: product.slug,
-        name: product.name,
+        name: displayName(product),
         imageUrl: imageUrl(product.images),
         price: product.price.toFixed(2),
         compareAtPrice: product.compareAtPrice?.toFixed(2) ?? null,
@@ -103,9 +114,9 @@ export class PrismaSearchRepository implements SearchRepository {
     });
 
     const categorySuggestions: SearchSuggestionCategory[] = categories
-      .sort((left, right) => searchRank(left.name, query) - searchRank(right.name, query) || left.name.localeCompare(right.name))
+      .sort((left, right) => searchRank(left.translations?.find((item) => item.locale === locale)?.name ?? left.name, query) - searchRank(right.translations?.find((item) => item.locale === locale)?.name ?? right.name, query))
       .slice(0, 4)
-      .map((category) => ({ type: "category", id: category.id, slug: category.slug, name: category.name, parentName: category.parent?.name ?? null }));
+      .map((category) => ({ type: "category", id: category.id, slug: category.slug, name: category.translations?.find((item) => item.locale === locale)?.name ?? category.name, parentName: category.parent?.name ?? null }));
 
     return { query, products: productSuggestions, categories: categorySuggestions };
   }

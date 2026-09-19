@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,9 +53,9 @@ export function PromotionalBanner({
 
       {/* Decorative Image in Background on larger viewports */}
       <div className="absolute right-0 top-0 bottom-0 w-1/2 hidden md:block opacity-40 dark:opacity-25 pointer-events-none">
-        <Image
+          <Image
           src={image}
-          alt="Promotional showcase"
+            alt={title}
           fill
           className="object-cover object-center"
         />

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@/i18n/navigation";
+import { usePathname } from "@/i18n/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { appConfig } from "@/config/app.config";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface AdminSidebarProps {
   isCollapsed: boolean;
@@ -138,6 +139,13 @@ export const ADMIN_SIDEBAR_NAV: AdminNavEntry[] = [
   },
 ];
 
+const adminLabelKeys: Record<string, string> = {
+  Dashboard: "dashboard", Catalog: "catalog", Products: "products", Categories: "categories",
+  Promotions: "promotions", Coupons: "coupons", Orders: "orders", Payments: "payments",
+  Returns: "returns", Shipping: "shipping", Customers: "customers", Reviews: "reviews",
+  Inventory: "inventory", "Admin Users": "users", Settings: "settings", "Activity Log": "auditLog",
+};
+
 export function AdminSidebar({
   isCollapsed,
   onToggleCollapse,
@@ -145,10 +153,12 @@ export function AdminSidebar({
   className,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("admin");
 
   function renderNavItem(item: AdminNavItem) {
     if (item.permission && !permissions.includes(item.permission)) return null;
     const Icon = item.icon;
+    const label = t(adminLabelKeys[item.name] ?? "dashboard");
     const isActive =
       item.href === "/admin"
         ? pathname === "/admin"
@@ -165,10 +175,10 @@ export function AdminSidebar({
             : "text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]",
           isCollapsed && "justify-center px-0",
         )}
-        title={isCollapsed ? item.name : undefined}
+        title={isCollapsed ? label : undefined}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        {!isCollapsed && <span className="flex-1 truncate">{item.name}</span>}
+        {!isCollapsed && <span className="flex-1 truncate">{label}</span>}
       </Link>
     );
   }
@@ -176,7 +186,7 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-[var(--border)] bg-[var(--surface-card)] transition-all duration-300 z-30",
+        "relative flex flex-col border-e border-[var(--border)] bg-[var(--surface-card)] transition-all duration-300 z-30",
         isCollapsed ? "w-18" : "w-64",
         className,
       )}
@@ -193,7 +203,7 @@ export function AdminSidebar({
           {!isCollapsed && (
             <div className="flex flex-col truncate">
               <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
-                Admin Console
+                {t("console")}
               </span>
               <span className="text-[11px] text-[var(--text-muted)] mt-1 truncate">
                 {appConfig.name}
@@ -206,7 +216,7 @@ export function AdminSidebar({
           type="button"
           onClick={onToggleCollapse}
           className="hidden lg:flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? t("expand") : t("collapse")}
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -223,7 +233,7 @@ export function AdminSidebar({
             <div key={entry.name} className="space-y-1.5 pt-2 first:pt-0">
               {!isCollapsed && (
                 <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  {entry.name}
+                  {t(adminLabelKeys[entry.name] ?? "catalog")}
                 </p>
               )}
               <div className="space-y-1.5">{entry.items.map(renderNavItem)}</div>
@@ -242,10 +252,10 @@ export function AdminSidebar({
             "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors",
             isCollapsed && "justify-center px-0",
           )}
-          title={isCollapsed ? "View Live Store" : undefined}
+          title={isCollapsed ? t("viewStore") : undefined}
         >
           <Store className="h-4 w-4 shrink-0" />
-          {!isCollapsed && <span>View Storefront</span>}
+          {!isCollapsed && <span>{t("viewStore")}</span>}
         </Link>
       </div>
     </aside>

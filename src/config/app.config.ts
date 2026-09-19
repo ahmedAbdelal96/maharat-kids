@@ -1,7 +1,7 @@
 export const appConfig = {
   name: "Ecommerce Framework",
   description: "A reusable, feature-based ecommerce foundation.",
-  defaultLocale: "en",
+  defaultLocale: "ar",
   defaultRevalidateSeconds: 300,
 } as const;
 

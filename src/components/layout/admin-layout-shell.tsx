@@ -40,7 +40,7 @@ export function AdminLayoutShell({
             className="fixed inset-0 bg-[var(--foreground)]/50 backdrop-blur-xs"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-64 z-10">
+          <div className="fixed inset-y-0 start-0 w-64 z-10">
             <AdminSidebar
               isCollapsed={false}
               onToggleCollapse={() => setIsMobileOpen(false)}

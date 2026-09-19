@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { ProductGrid } from "./product-grid";
 import type { Product } from "@/modules/products/types";
+import { useTranslations } from "next-intl";
 
 export interface FeaturedProductsSectionProps {
   products: Product[];
@@ -17,7 +18,8 @@ export function FeaturedProductsSection({
   categories,
   favoriteProductIds = [],
 }: FeaturedProductsSectionProps) {
-  const tabs = categories ?? [{ id: "all", label: "All Items", count: products.length }];
+  const t = useTranslations("storefront");
+  const tabs = categories ?? [{ id: "all", label: t("featuredProducts"), count: products.length }];
   const [activeCategoryTab, setActiveCategoryTab] = useState(tabs[0]?.id || "all");
 
   const filteredProducts =
@@ -34,10 +36,10 @@ export function FeaturedProductsSection({
             size="sm"
             className="mb-2 uppercase font-semibold tracking-wider text-[10px]"
           >
-            Catalog Highlights
+            {t("catalogHighlights")}
           </Badge>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            Featured Products
+            {t("featuredProducts")}
           </h2>
         </div>
 

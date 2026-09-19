@@ -4,6 +4,7 @@ import { useEffect, useRef, useId, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const t = useTranslations("common.actions");
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -120,7 +122,7 @@ export function Modal({
               <button
                 onClick={onClose}
                 className="rounded-[var(--radius-sm)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors"
-                aria-label="Close dialog"
+                aria-label={t("close")}
               >
                 <X className="h-4 w-4" />
               </button>

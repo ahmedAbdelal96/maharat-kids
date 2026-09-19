@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isCustomerAccessRequiredError, loginPathForReturnTo } from "@/modules/auth/domain/policies";

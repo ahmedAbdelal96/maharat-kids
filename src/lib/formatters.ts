@@ -12,6 +12,7 @@ export function formatCurrency(
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    currencyDisplay: locale.startsWith("ar") ? "name" : "symbol",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
@@ -25,6 +26,7 @@ export function formatMoney(
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    currencyDisplay: locale.startsWith("ar") ? "name" : "symbol",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(typeof amount === "number" ? amount : Number(amount));

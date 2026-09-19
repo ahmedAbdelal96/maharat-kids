@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback);
@@ -27,6 +28,7 @@ function getServerSnapshot(): boolean {
 
 export function ThemeToggle() {
   const isDark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const t = useTranslations("common.navigation");
 
   const toggleTheme = () => {
     const nextDark = !isDark;
@@ -45,7 +47,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      aria-label="Toggle theme"
+      aria-label={t("themePreference")}
       className="h-9 w-9 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

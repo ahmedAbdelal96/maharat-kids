@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { CheckCircle2, MessageCircle, PackageCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";

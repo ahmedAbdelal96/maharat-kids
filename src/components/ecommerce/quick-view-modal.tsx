@@ -9,6 +9,7 @@ import { PriceDisplay } from "./price-display";
 import { ProductImage } from "./product-image";
 import type { Product } from "@/modules/products/types";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
+import { useTranslations } from "next-intl";
 
 export interface QuickViewModalProps {
   product: Product | null;
@@ -28,6 +29,9 @@ export function QuickViewModal({
   onFavoriteChange,
 }: QuickViewModalProps) {
   const [quantity, setQuantity] = useState(1);
+  const t = useTranslations("products");
+  const catalog = useTranslations("common.catalog");
+  const storefront = useTranslations("storefront");
 
   if (!product) return null;
 
@@ -55,7 +59,7 @@ export function QuickViewModal({
               className="absolute top-3 left-3 flex items-center gap-1"
             >
               <Sparkles className="h-3 w-3" />
-              New
+              {catalog("new")}
             </Badge>
           )}
         </div>
@@ -64,14 +68,14 @@ export function QuickViewModal({
         <div className="flex flex-col justify-between space-y-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-              {product.categoryName || "Catalog"}
+              {product.categoryName || t("catalogLabel")}
             </span>
             <h2 className="mt-1 text-xl font-bold text-[var(--text-primary)]">
               {product.name}
             </h2>
 
             <div className="mt-2 flex items-center gap-3">
-              <span className="text-xs text-[var(--text-muted)]">{product.sku ?? "Catalog item"}</span>
+              <span className="text-xs text-[var(--text-muted)]">{product.sku ?? t("catalogLabel")}</span>
               <span className="text-xs text-[var(--text-muted)]">•</span>
               <span
                 className={`text-xs font-medium ${
@@ -80,7 +84,7 @@ export function QuickViewModal({
                     : "text-[var(--destructive)]"
                 }`}
               >
-                {!product.trackInventory ? "Available" : product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
+                {!product.trackInventory ? storefront("productAvailable") : product.stockQuantity > 0 ? storefront("stockAvailable", { count: product.stockQuantity }) : t("outOfStockAction")}
               </span>
             </div>
 
@@ -105,7 +109,7 @@ export function QuickViewModal({
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="px-3 py-1.5 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                  aria-label="Decrease quantity"
+                  aria-label={t("decreaseQuantity")}
                 >
                   -
                 </button>
@@ -116,7 +120,7 @@ export function QuickViewModal({
                   type="button"
                   onClick={() => setQuantity(quantity + 1)}
                   className="px-3 py-1.5 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                  aria-label="Increase quantity"
+                  aria-label={t("increaseQuantity")}
                 >
                   +
                 </button>
@@ -129,7 +133,7 @@ export function QuickViewModal({
                 onClick={handleAdd}
               >
                 <ShoppingBag className="h-4 w-4" />
-                <span>{product.status === "ACTIVE" && (!product.trackInventory || product.stockQuantity > 0) ? "Add to Cart" : "Unavailable"}</span>
+                <span>{product.status === "ACTIVE" && (!product.trackInventory || product.stockQuantity > 0) ? t("addToCartAction") : t("outOfStockAction")}</span>
               </Button>
               <FavoriteButton productId={product.id} productName={product.name} isFavorite={initialFavorite} isAvailable={product.status === "ACTIVE"} mode="icon" onChange={onFavoriteChange} className="shrink-0" />
             </div>

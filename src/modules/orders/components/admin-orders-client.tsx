@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Search } from "lucide-react";
 
 import { ProductImage } from "@/components/ecommerce/product-image";
@@ -35,6 +36,7 @@ function historyDate(value: string) {
 }
 
 export function AdminOrdersClient({ initialOrders, initialOrderId, initialShippingCompanies }: { initialOrders: OrderSummary[]; initialOrderId?: string; initialShippingCompanies: ShippingCompany[] }) {
+  const t = useTranslations("admin");
   const [orders, setOrders] = useState(initialOrders);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -114,13 +116,13 @@ export function AdminOrdersClient({ initialOrders, initialOrderId, initialShippi
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Orders ({filtered.length})</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">Manage fulfillment status while keeping payment state separate.</p>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">{t("operations")}</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
-        <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-[var(--text-muted)]" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, email, phone..." className="pl-9 text-xs" /></div>
-        <select aria-label="Filter orders by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs"><option value="ALL">All order statuses</option>{orderStatuses.map((status) => <option key={status} value={status}>{orderStatusLabels[status]}</option>)}</select>
-        <select aria-label="Filter orders by payment status" value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)} className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs"><option value="ALL">All payment statuses</option>{paymentStatuses.map((status) => <option key={status}>{status}</option>)}</select>
+        <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-[var(--text-muted)]" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("search")} className="pl-9 text-xs" /></div>
+        <select aria-label={t("orderStatus")} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs"><option value="ALL">{t("status")}</option>{orderStatuses.map((status) => <option key={status} value={status}>{orderStatusLabels[status]}</option>)}</select>
+        <select aria-label={t("paymentStatus")} value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)} className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs"><option value="ALL">{t("paymentStatus")}</option>{paymentStatuses.map((status) => <option key={status}>{status}</option>)}</select>
       </div>
 
       {(error || message) && <p role="alert" className={`rounded-[var(--radius-md)] px-3 py-2 text-xs ${error ? "bg-[var(--destructive-subtle)] text-[var(--destructive)]" : "bg-[var(--success-subtle)] text-[var(--success)]"}`}>{error || message}</p>}

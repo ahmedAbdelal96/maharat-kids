@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 
 type Filters = { search: string; filter: InventoryFilter; status: "ALL" | "DRAFT" | "ACTIVE" | "ARCHIVED" };
 

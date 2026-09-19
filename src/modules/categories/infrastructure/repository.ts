@@ -1,21 +1,25 @@
 import "server-only";
 
 import { PrismaClient, type Category as PrismaCategory } from "@prisma/client";
+import { getLocale } from "next-intl/server";
 import { getPrismaClient } from "@/database/prisma";
 import type { Category, CategoryId, CreateCategoryInput, UpdateCategoryInput } from "../types";
 
 type CategoryRecord = PrismaCategory & {
   _count?: { products: number; children: number };
   imageMedia?: { url: string } | null;
+  translations?: { locale: "ar" | "en"; name: string; description: string | null }[];
 };
 
-function toCategory(record: CategoryRecord, children: Category[] = []): Category {
+async function requestLocale(): Promise<"ar" | "en"> { try { return (await getLocale()) === "en" ? "en" : "ar"; } catch { return "ar"; } }
+function toCategory(record: CategoryRecord, children: Category[] = [], locale: "ar" | "en" = "ar"): Category {
+  const translation = record.translations?.find((item) => item.locale === locale) ?? record.translations?.find((item) => item.locale === "ar");
   return {
     id: record.id as CategoryId,
-    name: record.name,
+    name: translation?.name ?? record.name,
     slug: record.slug,
     parentId: record.parentId as CategoryId | null,
-    description: record.description,
+    description: translation?.description ?? record.description,
     imageMediaId: record.imageMediaId,
     imageUrl: record.imageMedia?.url ?? record.imageUrl,
     isActive: record.isActive,
@@ -41,16 +45,18 @@ export interface CategoryRepository {
 export class PrismaCategoryRepository implements CategoryRepository {
   constructor(private readonly db: PrismaClient = getPrismaClient()) {}
 
-  private include = { _count: { select: { products: true, children: true } }, imageMedia: { select: { url: true } } } as const;
+  private include = { _count: { select: { products: true, children: true } }, imageMedia: { select: { url: true } }, translations: { select: { locale: true, name: true, description: true } } } as const;
 
   async findById(id: CategoryId) {
+    const locale = await requestLocale();
     const record = await this.db.category.findUnique({ where: { id }, include: this.include });
-    return record ? toCategory(record) : null;
+    return record ? toCategory(record, [], locale) : null;
   }
 
   async findBySlug(slug: string, activeOnly = false) {
+    const locale = await requestLocale();
     const record = await this.db.category.findFirst({ where: { slug, ...(activeOnly ? { isActive: true } : {}) }, include: this.include });
-    return record ? toCategory(record) : null;
+    return record ? toCategory(record, [], locale) : null;
   }
 
   async slugExists(slug: string) {
@@ -58,8 +64,9 @@ export class PrismaCategoryRepository implements CategoryRepository {
   }
 
   async findAll(activeOnly = false) {
+    const locale = await requestLocale();
     const records = await this.db.category.findMany({ where: activeOnly ? { isActive: true } : undefined, include: this.include, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
-    return records.map((record) => toCategory(record));
+    return records.map((record) => toCategory(record, [], locale));
   }
 
   async create(input: CreateCategoryInput & { slug: string }) {

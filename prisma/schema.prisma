@@ -31,6 +31,12 @@ enum UserType {
   CUSTOMER
 }
 
+// Localized customer-facing catalog and promotion content.
+enum ContentLocale {
+  ar
+  en
+}
+
 // Represents any person who can access this ecommerce application.
 // UserType separates administration accounts from storefront customers.
 model User {
@@ -276,6 +282,7 @@ model Category {
   children     Category[] @relation("CategoryTree")
   products     Product[]
   imageMedia   Media?     @relation("CategoryImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  translations CategoryTranslation[]
 
   @@index([parentId])
   @@index([imageMediaId])
@@ -305,10 +312,42 @@ model Product {
   qualifyingPromotions Promotion[]     @relation("PromotionQualifyingProduct")
   giftPromotions       Promotion[]     @relation("PromotionGiftProduct")
   reviews              ProductReview[]
+  translations         ProductTranslation[]
 
   @@index([status])
   @@index([categoryId])
   @@index([isFeatured])
+}
+
+// Localized display and SEO content for a product; SKU and commercial values remain shared.
+model ProductTranslation {
+  id              String        @id @default(cuid())
+  productId       String
+  locale          ContentLocale
+  name            String
+  shortDescription String?
+  description     String?
+  seoTitle        String?
+  metaDescription String?
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+}
+
+// Localized display and SEO content for a category; hierarchy and slug remain shared.
+model CategoryTranslation {
+  id              String        @id @default(cuid())
+  categoryId      String
+  locale          ContentLocale
+  name            String
+  description     String?
+  seoTitle        String?
+  metaDescription String?
+  category        Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
 }
 
 // Product image ordering and primary-image state; file metadata lives in Media.
@@ -916,6 +955,7 @@ model Promotion {
   qualifyingProduct Product?         @relation("PromotionQualifyingProduct", fields: [qualifyingProductId], references: [id], onDelete: SetNull)
   giftProduct       Product?         @relation("PromotionGiftProduct", fields: [giftProductId], references: [id], onDelete: SetNull)
   orderPromotions   OrderPromotion[]
+  translations       PromotionTranslation[]
 
   @@index([isActive, startsAt, endsAt, priority])
   @@index([showInHero, isActive])
@@ -923,6 +963,22 @@ model Promotion {
   @@index([qualifyingProductId])
   @@index([giftProductId])
   @@index([bannerMediaId])
+}
+
+// Localized customer-facing copy for promotions; discount rules remain shared.
+model PromotionTranslation {
+  id              String        @id @default(cuid())
+  promotionId     String
+  locale          ContentLocale
+  name            String
+  shortDescription String?
+  description     String?
+  seoTitle        String?
+  metaDescription String?
+  promotion       Promotion     @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, locale])
+  @@index([locale])
 }
 
 // Immutable historical snapshot of a promotion applied to an order.

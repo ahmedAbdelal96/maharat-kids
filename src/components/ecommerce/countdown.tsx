@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useTranslations } from "next-intl";
 import { Clock } from "lucide-react";
 
 interface TimeLeft {
@@ -39,6 +40,7 @@ export function Countdown({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
+  const t = useTranslations("time");
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(endsAt));
 
@@ -59,7 +61,7 @@ export function Countdown({
     return (
       <div className={`inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] ${className}`}>
         <Clock className="h-3.5 w-3.5 opacity-60" />
-        <span>Limited time offer</span>
+        <span>{t("limited")}</span>
       </div>
     );
   }
@@ -68,7 +70,7 @@ export function Countdown({
     return (
       <div className={`inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] font-medium ${className}`}>
         <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-        <span>Offer Ended</span>
+        <span>{t("ended")}</span>
       </div>
     );
   }
@@ -105,7 +107,7 @@ export function Countdown({
               {timeLeft.days}
             </span>
             <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-              Days
+              {t("days")}
             </span>
           </div>
         )}
@@ -114,7 +116,7 @@ export function Countdown({
             {pad(timeLeft.hours)}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-            Hours
+            {t("hours")}
           </span>
         </div>
         <div className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)]/80 px-3 py-2 text-center min-w-[3.5rem]">
@@ -122,7 +124,7 @@ export function Countdown({
             {pad(timeLeft.minutes)}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-            Mins
+            {t("minutes")}
           </span>
         </div>
         <div className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)]/80 px-3 py-2 text-center min-w-[3.5rem]">
@@ -130,7 +132,7 @@ export function Countdown({
             {pad(timeLeft.seconds)}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-            Secs
+            {t("seconds")}
           </span>
         </div>
       </div>
@@ -149,7 +151,7 @@ export function Countdown({
         {timeLeft.days > 0 ? `${timeLeft.days}d ` : ""}
         {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
       </span>
-      <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">left</span>
+      <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">{t("left")}</span>
     </div>
   );
 }

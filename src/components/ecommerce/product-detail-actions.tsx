@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/modules/products/types";
 import { addProductToCart } from "@/modules/cart/server/actions";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { getInventoryState } from "@/modules/inventory/domain/inventory";
+import { useTranslations } from "next-intl";
 
 export interface ProductDetailActionsProps {
   product: Product;
@@ -20,6 +21,7 @@ export function ProductDetailActions({ product, initialFavorite = false }: Produ
   const [added, setAdded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
+  const t = useTranslations("products");
   const router = useRouter();
   const outOfStock = getInventoryState(product) === "OUT_OF_STOCK";
   async function add() { setBusy(true); setError(""); setAdded(false); const result = await addProductToCart({ productId: product.id, quantity }); if (!result.success) setError(result.error.message); else { setAdded(true); router.refresh(); } setBusy(false); }
@@ -33,7 +35,7 @@ export function ProductDetailActions({ product, initialFavorite = false }: Produ
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
             className="px-3.5 h-full text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
-            aria-label="Decrease quantity"
+            aria-label={t("decreaseQuantity")}
           >
             -
           </button>
@@ -44,7 +46,7 @@ export function ProductDetailActions({ product, initialFavorite = false }: Produ
             type="button"
             onClick={() => setQuantity(quantity + 1)}
             className="px-3.5 h-full text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
-            aria-label="Increase quantity"
+            aria-label={t("increaseQuantity")}
           >
             +
           </button>
@@ -59,13 +61,13 @@ export function ProductDetailActions({ product, initialFavorite = false }: Produ
           className="flex-1 gap-2 h-11 shadow-sm active:scale-[0.98]"
         >
           <ShoppingBag className="h-4 w-4" />
-          <span>{outOfStock ? "Out of stock" : "Add to Cart"}</span>
+          <span>{outOfStock ? t("outOfStockAction") : t("addToCartAction")}</span>
         </Button>
 
         <FavoriteButton productId={product.id} productName={product.name} isFavorite={isFavorite} isAvailable={product.status === "ACTIVE"} mode="button" onChange={setIsFavorite} className="h-11 w-full shrink-0 sm:w-auto" />
       </div>
       {error && <p role="alert" className="text-xs text-[var(--destructive)]">{error}</p>}
-      {added && !error && <p role="status" className="text-xs font-semibold text-[var(--success)]">Saved to your cart. You can keep shopping or open Cart to continue.</p>}
+      {added && !error && <p role="status" className="text-xs font-semibold text-[var(--success)]">{t("savedToCart")}</p>}
     </div>
   );
 }

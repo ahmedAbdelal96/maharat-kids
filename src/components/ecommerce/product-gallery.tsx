@@ -18,12 +18,12 @@ export function ProductGallery({ productName, images }: { productName: string; i
         priority
       />
       {images.length > 1 && (
-        <div className="grid grid-cols-4 gap-3" aria-label="Product image gallery">
+        <div className="grid grid-cols-4 gap-3" aria-label={productName}>
           {images.map((image, index) => (
             <button
               key={image.id}
               type="button"
-              aria-label={`Show image ${index + 1}`}
+              aria-label={`${productName} ${index + 1}`}
               aria-pressed={activeIndex === index}
               onClick={() => setActiveIndex(index)}
               className={`rounded-[var(--radius-md)] border p-1 transition-all ${activeIndex === index ? "border-[var(--primary)] ring-2 ring-[var(--ring)]" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}
