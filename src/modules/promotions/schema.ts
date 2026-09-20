@@ -2,6 +2,7 @@ import { z } from "zod";
 import { promotionTypes } from "./constants";
 
 export const promotionTypeSchema = z.enum(promotionTypes);
+const marketMoney = z.object({ minimumOrderSubtotal: z.coerce.number().min(0).nullable().optional(), fixedDiscountAmount: z.coerce.number().min(0.01).nullable().optional() });
 
 export const createPromotionSchema = z
   .object({
@@ -20,6 +21,7 @@ export const createPromotionSchema = z
     minimumOrderSubtotal: z.coerce.number().min(0, "Minimum spend must be 0 or greater.").nullable().optional(),
     percentageDiscount: z.coerce.number().min(0.01, "Discount percentage must be greater than 0.").max(100, "Discount percentage cannot exceed 100%.").nullable().optional(),
     fixedDiscountAmount: z.coerce.number().min(0.01, "Fixed discount amount must be greater than 0.").nullable().optional(),
+    marketRules: z.object({ SAUDI_ARABIA: marketMoney, EGYPT: marketMoney }),
 
     qualifyingProductId: z.string().trim().nullable().optional(),
     buyQuantity: z.coerce.number().int().min(1, "Buy quantity must be at least 1.").nullable().optional(),
@@ -46,13 +48,7 @@ export const createPromotionSchema = z
     }
 
     if (data.type === "ORDER_FIXED_DISCOUNT") {
-      if (data.fixedDiscountAmount == null || data.fixedDiscountAmount <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Fixed discount amount greater than 0 is required for this offer type.",
-          path: ["fixedDiscountAmount"],
-        });
-      }
+      for (const market of ["SAUDI_ARABIA", "EGYPT"] as const) if (data.marketRules[market].fixedDiscountAmount == null || data.marketRules[market].fixedDiscountAmount <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Fixed discount amount greater than 0 is required for each market.", path: ["marketRules", market, "fixedDiscountAmount"] });
     }
 
     if (data.type === "BUY_X_GET_Y_FREE") {
@@ -105,6 +101,7 @@ export const updatePromotionSchema = z
     minimumOrderSubtotal: z.coerce.number().min(0).nullable().optional(),
     percentageDiscount: z.coerce.number().min(0.01).max(100).nullable().optional(),
     fixedDiscountAmount: z.coerce.number().min(0.01).nullable().optional(),
+    marketRules: z.object({ SAUDI_ARABIA: marketMoney, EGYPT: marketMoney }).optional(),
 
     qualifyingProductId: z.string().trim().nullable().optional(),
     buyQuantity: z.coerce.number().int().min(1).nullable().optional(),

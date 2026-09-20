@@ -6,7 +6,7 @@ export const fallbackStoreSettings: StoreSettings = {
   name: appConfig.name,
   email: "",
   phone: "",
-  currency: "USD",
+  currency: "SAR",
   language: appConfig.defaultLocale,
   seoTitle: appConfig.name,
   seoDescription: appConfig.description,

@@ -14,6 +14,7 @@ import { createPasswordHasher } from "@/modules/auth/providers/password-hasher";
 import { checkRateLimit } from "@/server/rate-limit";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from "@/modules/audit/constants";
 import { writeAdminAudit } from "@/modules/audit/server/writer";
+import { resolveMarket } from "@/modules/market/server/resolver";
 
 import { CustomerService } from "../domain/service";
 import { PrismaCustomerRepository } from "../infrastructure/repository";
@@ -47,7 +48,8 @@ export async function createCustomerAddress(input: unknown) {
   if (!parsed.success) return failure(new ValidationError("Please review the address details.", { issues: parsed.error.issues }));
   const actor = await getCustomerActor();
   if (!actor.success) return failure(actor.error);
-  const result = await createDefaultCustomerService().createAddress(actor.data.user.id, parsed.data);
+  const market = await resolveMarket();
+  const result = await createDefaultCustomerService().createAddress(actor.data.user.id, market.market, parsed.data);
   if (result.success) revalidatePath("/account");
   return result;
 }
@@ -57,8 +59,9 @@ export async function updateCustomerAddress(input: unknown) {
   if (!parsed.success) return failure(new ValidationError("Please review the address details.", { issues: parsed.error.issues }));
   const actor = await getCustomerActor();
   if (!actor.success) return failure(actor.error);
+  const market = await resolveMarket();
   const { addressId, ...address } = parsed.data;
-  const result = await createDefaultCustomerService().updateAddress(actor.data.user.id, addressId, address);
+  const result = await createDefaultCustomerService().updateAddress(actor.data.user.id, addressId, market.market, address);
   if (result.success) revalidatePath("/account");
   return result;
 }
@@ -68,7 +71,8 @@ export async function deleteCustomerAddress(input: unknown) {
   if (!parsed.success) return failure(new ValidationError("Please select a valid address."));
   const actor = await getCustomerActor();
   if (!actor.success) return failure(actor.error);
-  const result = await createDefaultCustomerService().deleteAddress(actor.data.user.id, parsed.data.addressId);
+  const market = await resolveMarket();
+  const result = await createDefaultCustomerService().deleteAddress(actor.data.user.id, parsed.data.addressId, market.market);
   if (result.success) revalidatePath("/account");
   return result;
 }
@@ -93,7 +97,7 @@ export async function updateCustomerStatus(input: unknown) {
   const result = await createDefaultCustomerService().updateAdminCustomerStatus(actor.data, parsed.data.customerId, parsed.data.status);
   if (result.success) {
     if (before.data.status !== result.data.status) {
-      await writeAdminAudit(actor.data, { action: result.data.status === "SUSPENDED" ? AUDIT_ACTIONS.CUSTOMER_SUSPENDED : AUDIT_ACTIONS.CUSTOMER_ACTIVATED, entityType: AUDIT_ENTITY_TYPES.CUSTOMER, entityId: result.data.id, entityLabel: result.data.name ?? result.data.email, changes: { fields: [{ field: "status", before: before.data.status, after: result.data.status }] } });
+      await writeAdminAudit(actor.data, { action: result.data.status === "SUSPENDED" ? AUDIT_ACTIONS.CUSTOMER_SUSPENDED : AUDIT_ACTIONS.CUSTOMER_ACTIVATED, entityType: AUDIT_ENTITY_TYPES.CUSTOMER, entityId: result.data.id, entityLabel: result.data.name ?? result.data.email ?? result.data.phone ?? result.data.id, changes: { fields: [{ field: "status", before: before.data.status, after: result.data.status }] } });
     }
     revalidatePath("/admin/customers");
     revalidatePath(`/admin/customers/${parsed.data.customerId}`);

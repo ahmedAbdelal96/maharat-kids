@@ -42,6 +42,14 @@ function toDateTimeLocal(isoString?: string | null): string {
   return `${year}-${month}-${day}T${hours}:${mins}`;
 }
 
+function MarketMinimum({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <div className="space-y-1.5"><Label className="text-xs font-semibold">{label} minimum order<Input type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Optional" className="text-xs" /></Label></div>;
+}
+
+function MarketAmount({ label, amount, setAmount, minimum, setMinimum }: { label: string; amount: string; setAmount: (value: string) => void; minimum: string; setMinimum: (value: string) => void }) {
+  return <fieldset className="space-y-2 rounded border border-[var(--border)] p-3"><legend className="px-1 text-xs font-semibold">{label}</legend><Label>Fixed discount<Input required type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></Label><Label>Minimum order<Input type="number" min="0" step="0.01" value={minimum} onChange={(event) => setMinimum(event.target.value)} /></Label></fieldset>;
+}
+
 export function PromotionForm({
   initialData,
   limits,
@@ -71,12 +79,10 @@ export function PromotionForm({
   const [percentageDiscount, setPercentageDiscount] = useState<string>(
     initialData?.percentageDiscount ?? "10",
   );
-  const [fixedDiscountAmount, setFixedDiscountAmount] = useState<string>(
-    initialData?.fixedDiscountAmount ?? "10.00",
-  );
-  const [minimumOrderSubtotal, setMinimumOrderSubtotal] = useState<string>(
-    initialData?.minimumOrderSubtotal ?? "",
-  );
+  const [saFixedDiscountAmount, setSaFixedDiscountAmount] = useState<string>(initialData?.marketRules?.SAUDI_ARABIA.fixedDiscountAmount ?? "10.00");
+  const [egFixedDiscountAmount, setEgFixedDiscountAmount] = useState<string>(initialData?.marketRules?.EGYPT.fixedDiscountAmount ?? "100.00");
+  const [saMinimumOrderSubtotal, setSaMinimumOrderSubtotal] = useState<string>(initialData?.marketRules?.SAUDI_ARABIA.minimumOrderSubtotal ?? "");
+  const [egMinimumOrderSubtotal, setEgMinimumOrderSubtotal] = useState<string>(initialData?.marketRules?.EGYPT.minimumOrderSubtotal ?? "");
 
   // BOGO states
   const [qualifyingProduct, setQualifyingProduct] = useState<PromotionProductRef | null>(
@@ -129,19 +135,23 @@ export function PromotionForm({
         startsAt: startsAt ? new Date(startsAt).toISOString() : new Date().toISOString(),
         endsAt: endsAt ? new Date(endsAt).toISOString() : null,
         bannerMediaId: mediaImages[0]?.mediaId ?? null,
+        marketRules: {
+          SAUDI_ARABIA: { minimumOrderSubtotal: saMinimumOrderSubtotal.trim() ? parseFloat(saMinimumOrderSubtotal) : null, fixedDiscountAmount: type === "ORDER_FIXED_DISCOUNT" ? parseFloat(saFixedDiscountAmount) || 0 : null },
+          EGYPT: { minimumOrderSubtotal: egMinimumOrderSubtotal.trim() ? parseFloat(egMinimumOrderSubtotal) : null, fixedDiscountAmount: type === "ORDER_FIXED_DISCOUNT" ? parseFloat(egFixedDiscountAmount) || 0 : null },
+        },
       };
 
       if (type === "ORDER_PERCENTAGE_DISCOUNT") {
         payload.percentageDiscount = parseFloat(percentageDiscount) || 0;
-        payload.minimumOrderSubtotal = minimumOrderSubtotal.trim() ? parseFloat(minimumOrderSubtotal) : null;
+        payload.minimumOrderSubtotal = null;
         payload.fixedDiscountAmount = null;
         payload.qualifyingProductId = null;
         payload.buyQuantity = null;
         payload.giftProductId = null;
         payload.giftQuantity = null;
       } else if (type === "ORDER_FIXED_DISCOUNT") {
-        payload.fixedDiscountAmount = parseFloat(fixedDiscountAmount) || 0;
-        payload.minimumOrderSubtotal = minimumOrderSubtotal.trim() ? parseFloat(minimumOrderSubtotal) : null;
+        payload.fixedDiscountAmount = null;
+        payload.minimumOrderSubtotal = null;
         payload.percentageDiscount = null;
         payload.qualifyingProductId = null;
         payload.buyQuantity = null;
@@ -334,68 +344,15 @@ export function PromotionForm({
                     )}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="minimumOrderSubtotal" className="text-xs font-semibold">
-                      Minimum Order Subtotal ($)
-                    </Label>
-                    <Input
-                      id="minimumOrderSubtotal"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={minimumOrderSubtotal}
-                      onChange={(e) => setMinimumOrderSubtotal(e.target.value)}
-                      placeholder="Optional, e.g. 100.00"
-                      className="text-xs"
-                    />
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      Leave blank or 0 for no minimum subtotal threshold.
-                    </p>
-                  </div>
+                  <MarketMinimum label="Saudi Arabia — SAR" value={saMinimumOrderSubtotal} onChange={setSaMinimumOrderSubtotal} />
+                  <MarketMinimum label="Egypt — EGP" value={egMinimumOrderSubtotal} onChange={setEgMinimumOrderSubtotal} />
                 </div>
               )}
 
               {type === "ORDER_FIXED_DISCOUNT" && (
                 <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fixedDiscountAmount" className="text-xs font-semibold">
-                      Fixed Discount Amount ($) <span className="text-[var(--destructive)]">*</span>
-                    </Label>
-                    <Input
-                      id="fixedDiscountAmount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={fixedDiscountAmount}
-                      onChange={(e) => setFixedDiscountAmount(e.target.value)}
-                      required
-                      className="text-xs"
-                    />
-                    {validationIssues.fixedDiscountAmount && (
-                      <p className="text-[11px] text-[var(--destructive)]">
-                        {validationIssues.fixedDiscountAmount}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="minimumOrderSubtotal" className="text-xs font-semibold">
-                      Minimum Order Subtotal ($)
-                    </Label>
-                    <Input
-                      id="minimumOrderSubtotal"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={minimumOrderSubtotal}
-                      onChange={(e) => setMinimumOrderSubtotal(e.target.value)}
-                      placeholder="Optional, e.g. 150.00"
-                      className="text-xs"
-                    />
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      Leave blank or 0 for no minimum subtotal threshold.
-                    </p>
-                  </div>
+                  <MarketAmount label="Saudi Arabia — SAR" amount={saFixedDiscountAmount} setAmount={setSaFixedDiscountAmount} minimum={saMinimumOrderSubtotal} setMinimum={setSaMinimumOrderSubtotal} />
+                  <MarketAmount label="Egypt — EGP" amount={egFixedDiscountAmount} setAmount={setEgFixedDiscountAmount} minimum={egMinimumOrderSubtotal} setMinimum={setEgMinimumOrderSubtotal} />
                 </div>
               )}
 

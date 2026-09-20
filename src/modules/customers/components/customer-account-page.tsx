@@ -10,6 +10,7 @@ import { getCustomerFavorites } from "@/modules/favorites/server/queries";
 import { getCustomerNotifications } from "@/modules/notifications/server/queries";
 import { getPublicStoreSettings } from "@/modules/store/server/queries";
 import { getCustomerReviews } from "@/modules/reviews/server/queries";
+import { resolveMarket } from "@/modules/market/server/resolver";
 import { getTranslations } from "next-intl/server";
 
 import { CustomerAccountContent, type AccountSection } from "./customer-account-content";
@@ -24,7 +25,8 @@ export async function CustomerAccountPage({ initialSection = "profile" }: { init
     throw result.error;
   }
 
-  const [account, orders, favorites, notifications, settings, reviews] = await Promise.all([getCustomerAccountData(), getCustomerOrders(), getCustomerFavorites(), getCustomerNotifications({ page: 1, pageSize: 20 }), getPublicStoreSettings(), getCustomerReviews()]);
+  const market = await resolveMarket();
+  const [account, orders, favorites, notifications, settings, reviews] = await Promise.all([getCustomerAccountData(market.market), getCustomerOrders(), getCustomerFavorites(), getCustomerNotifications({ page: 1, pageSize: 20 }), getPublicStoreSettings(), getCustomerReviews()]);
   if (!account.success) throw account.error;
   if (!orders.success) throw orders.error;
   if (!favorites.success) throw favorites.error;
@@ -34,7 +36,7 @@ export async function CustomerAccountPage({ initialSection = "profile" }: { init
 
   const { user } = result.data;
   const { profile } = account.data;
-  const displayName = profile.name || profile.email.split("@")[0] || "Customer";
+  const displayName = profile.name || profile.email?.split("@")[0] || profile.phone || "Customer";
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -49,7 +51,7 @@ export async function CustomerAccountPage({ initialSection = "profile" }: { init
         <CustomerAccountActions sessionId={result.data.session.id} />
       </header>
 
-      <CustomerAccountContent initialData={{ ...account.data, orders: orders.data, favorites: favorites.data, notifications: notifications.data.items, unreadNotificationCount: notifications.data.unreadCount, reviewData: reviews.data }} currency={settings.data.currency} initialSection={initialSection} />
+      <CustomerAccountContent initialData={{ ...account.data, orders: orders.data, favorites: favorites.data, notifications: notifications.data.items, unreadNotificationCount: notifications.data.unreadCount, reviewData: reviews.data }} currency={settings.data.currency} market={market.market} initialSection={initialSection} />
     </div>
   );
 }

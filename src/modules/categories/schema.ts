@@ -9,6 +9,8 @@ export const createCategorySchema = z.object({
   imageMediaId: z.string().trim().min(1).nullable().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(9999).optional(),
+  showInNavigation: z.boolean().optional(),
+  slug: z.string().trim().min(1).max(120).optional(),
 });
 
 export const updateCategorySchema = createCategorySchema.extend({ id: categoryIdSchema });

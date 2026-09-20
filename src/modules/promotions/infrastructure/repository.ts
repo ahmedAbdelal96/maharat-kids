@@ -58,6 +58,7 @@ const promotionInclude = {
   translations: {
     select: { locale: true, name: true, shortDescription: true, description: true },
   },
+  marketRules: true,
 } as const;
 
 type PromotionRecord = Prisma.PromotionGetPayload<{ include: typeof promotionInclude }>;
@@ -105,6 +106,7 @@ function toPromotion(record: PromotionRecord, now = new Date(), locale: "ar" | "
     minimumOrderSubtotal: money(record.minimumOrderSubtotal),
     percentageDiscount: record.percentageDiscount ? record.percentageDiscount.toFixed(2) : null,
     fixedDiscountAmount: money(record.fixedDiscountAmount),
+    marketRules: Object.fromEntries(record.marketRules.map((rule) => [rule.market, { minimumOrderSubtotal: money(rule.minimumOrderSubtotal), fixedDiscountAmount: money(rule.fixedDiscountAmount) }])) as Promotion["marketRules"],
     qualifyingProductId: record.qualifyingProductId,
     qualifyingProduct: toProductRef(record.qualifyingProduct),
     buyQuantity: record.buyQuantity,
@@ -307,6 +309,7 @@ export class PrismaPromotionRepository implements PromotionRepository {
         minimumOrderSubtotal: input.minimumOrderSubtotal != null ? new Prisma.Decimal(input.minimumOrderSubtotal) : null,
         percentageDiscount: input.percentageDiscount != null ? new Prisma.Decimal(input.percentageDiscount) : null,
         fixedDiscountAmount: input.fixedDiscountAmount != null ? new Prisma.Decimal(input.fixedDiscountAmount) : null,
+        marketRules: { create: (["SAUDI_ARABIA", "EGYPT"] as const).map((market) => ({ market, minimumOrderSubtotal: input.marketRules[market].minimumOrderSubtotal != null ? new Prisma.Decimal(input.marketRules[market].minimumOrderSubtotal!) : null, fixedDiscountAmount: input.marketRules[market].fixedDiscountAmount != null ? new Prisma.Decimal(input.marketRules[market].fixedDiscountAmount!) : null })) },
         qualifyingProductId: input.qualifyingProductId ?? null,
         buyQuantity: input.buyQuantity ?? null,
         giftProductId: input.giftProductId ?? null,
@@ -339,6 +342,7 @@ export class PrismaPromotionRepository implements PromotionRepository {
       ...(input.fixedDiscountAmount !== undefined
         ? { fixedDiscountAmount: input.fixedDiscountAmount != null ? new Prisma.Decimal(input.fixedDiscountAmount) : null }
         : {}),
+      ...(input.marketRules !== undefined ? { marketRules: { upsert: (["SAUDI_ARABIA", "EGYPT"] as const).map((market) => ({ where: { promotionId_market: { promotionId: id, market } }, create: { market, minimumOrderSubtotal: input.marketRules![market].minimumOrderSubtotal != null ? new Prisma.Decimal(input.marketRules![market].minimumOrderSubtotal!) : null, fixedDiscountAmount: input.marketRules![market].fixedDiscountAmount != null ? new Prisma.Decimal(input.marketRules![market].fixedDiscountAmount!) : null }, update: { minimumOrderSubtotal: input.marketRules![market].minimumOrderSubtotal != null ? new Prisma.Decimal(input.marketRules![market].minimumOrderSubtotal!) : null, fixedDiscountAmount: input.marketRules![market].fixedDiscountAmount != null ? new Prisma.Decimal(input.marketRules![market].fixedDiscountAmount!) : null } })) } } : {}),
       ...(input.qualifyingProductId !== undefined ? { qualifyingProductId: input.qualifyingProductId ?? null } : {}),
       ...(input.buyQuantity !== undefined ? { buyQuantity: input.buyQuantity ?? null } : {}),
       ...(input.giftProductId !== undefined ? { giftProductId: input.giftProductId ?? null } : {}),

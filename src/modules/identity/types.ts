@@ -18,10 +18,10 @@ export type PermissionKey = string & { readonly __brand: "PermissionKey" };
 
 export type User = {
   id: UserId;
-  email: string;
+  email: string | null;
   name: string | null;
   phone: string | null;
-  passwordHash: string;
+  passwordHash: string | null;
   type: UserType;
   status: UserStatus;
   firstLoginAt: Date | null;

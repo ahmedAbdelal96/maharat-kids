@@ -5,9 +5,9 @@ import { failure, success, type Result } from "@/core/result";
 import type { AuthorizationService } from "@/modules/identity/domain/services";
 import type { UserId } from "@/modules/identity/types";
 import { SHIPPING_PERMISSIONS } from "../constants";
-import type { SettlementBatchInput, TransitionShipmentInput } from "../schema";
+import type { SettlementBatchInput, TransitionShipmentInput, UpdateShippingCarrierConfigurationInput } from "../schema";
 import type { ShippingRepository } from "../infrastructure/repository";
-import type { ShipmentDetails, ShippingCompany, ShippingCompanyDetail, ShippingCompanyDetailQuery, ShippingOverview, SettlementSummary } from "../types";
+import type { ShipmentDetails, ShippingCompany, ShippingCompanyDetail, ShippingCompanyDetailQuery, ShippingOverview, SettlementSummary, ShippingCarrierConfiguration } from "../types";
 
 function operationError(error: unknown) {
   const code = error instanceof Error ? error.message : "SHIPPING_OPERATION_FAILED";
@@ -50,14 +50,21 @@ export class ShippingService {
     try { return success(await this.repository.findCompanies()); } catch (error) { return failure(operationError(error)); }
   }
 
+  async getCarrierConfigurations(userId: UserId): Promise<Result<ShippingCarrierConfiguration[], AppError>> {
+    const allowed = await this.authorization.requirePermission(userId, SHIPPING_PERMISSIONS.view);
+    if (!allowed.success) return failure(allowed.error);
+    try { return success(await this.repository.findCarrierConfigurations()); } catch (error) { return failure(operationError(error)); }
+  }
+
   async getShipmentForOrder(userId: UserId, orderId: string): Promise<Result<ShipmentDetails | null, AppError>> {
     const allowed = await this.authorization.requirePermission(userId, SHIPPING_PERMISSIONS.view);
     if (!allowed.success) return failure(allowed.error);
     try { return success(await this.repository.findShipmentByOrderId(orderId)); } catch (error) { return failure(operationError(error)); }
   }
 
-  async createCompany(userId: UserId, input: { name: string; phone?: string; contactPerson?: string; notes?: string }) { return this.mutate(userId, () => this.repository.createCompany(input)); }
-  async updateCompany(userId: UserId, id: string, input: { name: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }) { return this.mutate(userId, () => this.repository.updateCompany(id, input)); }
+  async createCompany(userId: UserId, input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string }) { return this.mutate(userId, () => this.repository.createCompany(input)); }
+  async updateCompany(userId: UserId, id: string, input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }) { return this.mutate(userId, () => this.repository.updateCompany(id, input)); }
+  async updateCarrierConfiguration(userId: UserId, input: UpdateShippingCarrierConfigurationInput) { return this.mutate(userId, () => this.repository.updateCarrierConfiguration(input)); }
   async deleteCompany(userId: UserId, id: string): Promise<Result<true, AppError>> { const allowed = await this.authorization.requirePermission(userId, SHIPPING_PERMISSIONS.update); if (!allowed.success) return failure(allowed.error); try { await this.repository.deleteCompany(id); return success(true); } catch (error) { return failure(operationError(error)); } }
   async assignShipment(userId: UserId, orderId: string, companyId: string, trackingNumber?: string) { return this.mutate(userId, () => this.repository.assignShipment(orderId, companyId, trackingNumber)); }
   async transitionShipment(userId: UserId, input: TransitionShipmentInput) { return this.mutate(userId, () => this.repository.transitionShipment(input.orderId, input.status, userId, input.failureReason, input.note)); }

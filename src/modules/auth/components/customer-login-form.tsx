@@ -12,17 +12,20 @@ import { isSafeReturnTo } from "../domain/policies";
 import { login } from "../server/actions";
 import { stripLocalePrefix } from "@/i18n/paths";
 import { useLocale, useTranslations } from "next-intl";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export function CustomerLoginForm({
   googleAvailable,
   callbackUrl,
   initialError,
   resetComplete,
+  adminMode = false,
 }: {
   googleAvailable: boolean;
   callbackUrl?: string;
   initialError?: string;
   resetComplete?: boolean;
+  adminMode?: boolean;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -47,9 +50,12 @@ export function CustomerLoginForm({
         return;
       }
 
-      const fallback = result.data.user.type === "ADMIN" ? "/admin" : "/account";
-      router.replace(isSafeReturnTo(callbackUrl) ? stripLocalePrefix(callbackUrl) : fallback);
-      router.refresh();
+      if (adminMode) {
+        router.replace(isSafeReturnTo(callbackUrl) ? stripLocalePrefix(callbackUrl) : "/admin");
+        router.refresh();
+      } else {
+        setErrorMessage("Customer password sign-in has been retired. Use the one-time code flow.");
+      }
     } catch {
       setErrorMessage(t("serviceUnavailable"));
     } finally {
@@ -65,8 +71,8 @@ export function CustomerLoginForm({
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12 sm:px-6">
       <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="space-y-2 p-0 pb-6 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-muted)] text-[var(--primary)]">
-            <Lock className="h-6 w-6" />
+          <div className="mx-auto mb-2 flex items-center justify-center">
+            <BrandLockup variant="auth" priority />
           </div>
           <CardTitle className="text-2xl font-bold">{t("welcome")}</CardTitle>
           <CardDescription>{checkoutContinuation ? t("continueCheckout") : t("signInDescription")}</CardDescription>

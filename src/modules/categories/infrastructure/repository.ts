@@ -23,6 +23,7 @@ function toCategory(record: CategoryRecord, children: Category[] = [], locale: "
     imageMediaId: record.imageMediaId,
     imageUrl: record.imageMedia?.url ?? record.imageUrl,
     isActive: record.isActive,
+    showInNavigation: record.showInNavigation,
     sortOrder: record.sortOrder,
     productCount: record._count?.products ?? 0,
     childCount: record._count?.children ?? 0,
@@ -70,12 +71,12 @@ export class PrismaCategoryRepository implements CategoryRepository {
   }
 
   async create(input: CreateCategoryInput & { slug: string }) {
-    const record = await this.db.category.create({ data: { name: input.name, slug: input.slug, parentId: input.parentId ?? null, description: input.description ?? null, imageMediaId: input.imageMediaId ?? null, isActive: input.isActive ?? true, sortOrder: input.sortOrder ?? 0 }, include: this.include });
+    const record = await this.db.category.create({ data: { name: input.name, slug: input.slug, parentId: input.parentId ?? null, description: input.description ?? null, imageMediaId: input.imageMediaId ?? null, isActive: input.isActive ?? true, showInNavigation: input.showInNavigation ?? true, sortOrder: input.sortOrder ?? 0 }, include: this.include });
     return toCategory(record);
   }
 
   async update(input: UpdateCategoryInput & { slug: string }) {
-    const record = await this.db.category.update({ where: { id: input.id }, data: { name: input.name, slug: input.slug, parentId: input.parentId ?? null, description: input.description ?? null, imageUrl: null, imageMediaId: input.imageMediaId ?? null, ...(input.isActive === undefined ? {} : { isActive: input.isActive }), sortOrder: input.sortOrder ?? 0 }, include: this.include });
+    const record = await this.db.category.update({ where: { id: input.id }, data: { name: input.name, slug: input.slug, parentId: input.parentId ?? null, description: input.description ?? null, imageUrl: null, imageMediaId: input.imageMediaId ?? null, ...(input.isActive === undefined ? {} : { isActive: input.isActive }), ...(input.showInNavigation === undefined ? {} : { showInNavigation: input.showInNavigation }), sortOrder: input.sortOrder ?? 0 }, include: this.include });
     return toCategory(record);
   }
 

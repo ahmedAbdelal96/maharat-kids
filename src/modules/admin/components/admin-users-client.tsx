@@ -290,7 +290,7 @@ function UsersTab({
               <TableCell>
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-muted)] text-xs font-bold text-[var(--text-secondary)]">
-                    {user.email.charAt(0).toUpperCase()}
+                    {(user.email ?? user.phone ?? "A").charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <span className="text-xs font-semibold text-[var(--text-primary)]">{user.email}</span>

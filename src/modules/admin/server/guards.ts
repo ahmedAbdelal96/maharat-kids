@@ -16,7 +16,7 @@ export async function getAdminContext(): Promise<AdminContext> {
   }
 
   if (!currentUser.data) {
-    redirect("/login");
+    redirect("/login?mode=admin");
   }
 
   if (currentUser.data.user.type !== "ADMIN") {
@@ -30,7 +30,7 @@ export async function getAdminContext(): Promise<AdminContext> {
 
   if (!permission.success) {
     if (permission.error.code === "UNAUTHORIZED") {
-      redirect("/login");
+      redirect("/login?mode=admin");
     }
 
     if (permission.error.code === "FORBIDDEN") {

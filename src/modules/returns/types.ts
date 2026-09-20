@@ -39,7 +39,7 @@ export type ReturnSummary = {
   orderNumber: string;
   customerId: string;
   customerName: string | null;
-  customerEmail: string;
+  customerEmail: string | null;
   customerPhone: string | null;
   status: ReturnStatus;
   reason: ReturnReason;

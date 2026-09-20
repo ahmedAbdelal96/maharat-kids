@@ -13,7 +13,7 @@ export interface AuditLogRepository {
 function toItem(record: Prisma.AuditLogGetPayload<Prisma.AuditLogDefaultArgs>): AuditLogItem {
   return {
     id: record.id,
-    actor: { userId: record.actorUserId, name: record.actorNameSnapshot, email: record.actorEmailSnapshot ?? "" },
+    actor: { userId: record.actorUserId, name: record.actorNameSnapshot, email: record.actorEmailSnapshot },
     action: record.action as AuditRecordInput["action"],
     entityType: record.entityType as AuditRecordInput["entityType"],
     entityId: record.entityId,
@@ -32,7 +32,7 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
     const record = await client.auditLog.create({
       data: {
         actorUserId: input.actor.userId,
-        actorNameSnapshot: input.actor.name ?? input.actor.email,
+        actorNameSnapshot: input.actor.name ?? input.actor.email ?? "System",
         actorEmailSnapshot: input.actor.email,
         action: input.action,
         entityType: input.entityType,

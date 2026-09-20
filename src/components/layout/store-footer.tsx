@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { appConfig } from "@/config/app.config";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export interface StoreFooterProps {
   storeName?: string;
@@ -9,9 +10,9 @@ export interface StoreFooterProps {
 
 export async function StoreFooter({
   storeName = appConfig.name,
-  description = appConfig.description,
 }: StoreFooterProps) {
   const currentYear = new Date().getFullYear();
+  const locale = await getLocale();
   const t = await getTranslations("navigation");
   const actions = await getTranslations("common.actions");
 
@@ -21,14 +22,12 @@ export async function StoreFooter({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Info */}
           <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-[var(--text-primary)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-hover)] text-[var(--primary-foreground)] font-bold text-xs shadow-xs">
-                {storeName.charAt(0)}
-              </div>
-              <span>{storeName}</span>
+            <Link href="/" className="transition-opacity hover:opacity-85 inline-block" aria-label="Maharat Kids home">
+              <BrandLockup variant="footer" />
             </Link>
+            <p className="text-xs font-semibold text-[var(--brand-green)]">نتعلم • نلعب • نتطور</p>
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed max-w-sm">
-              {description}
+              {locale === "ar" ? "أدوات للتعلّم واللعب ومنتجات مختارة بعناية لعقول تنمو كل يوم." : "Learning tools, creative play, and thoughtful products chosen for growing minds."}
             </p>
           </div>
 
@@ -94,7 +93,7 @@ export async function StoreFooter({
         <div className="mt-10 pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-muted)]">
           <p>© {currentYear} {storeName}.</p>
           <div className="flex items-center gap-4">
-            <span className="text-[11px] text-[var(--text-secondary)]">{description}</span>
+            <span className="text-[11px] text-[var(--text-secondary)]">{locale === "ar" ? "نتعلم • نلعب • نتطور" : "Learn • play • grow"}</span>
           </div>
         </div>
       </div>

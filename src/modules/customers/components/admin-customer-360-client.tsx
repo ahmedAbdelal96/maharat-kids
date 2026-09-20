@@ -72,7 +72,7 @@ export function AdminCustomer360Client({ initialData, currency }: { initialData:
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] text-lg font-black text-[var(--primary)]">{(profile.name || profile.email).charAt(0).toUpperCase()}</div>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] text-lg font-black text-[var(--primary)]">{(profile.name || profile.email || profile.phone || "C").charAt(0).toUpperCase()}</div>
           <div className="min-w-0"><p className="text-xs font-semibold text-[var(--primary)]">Customer 360</p><h1 className="truncate text-2xl font-black text-[var(--text-primary)]">{profile.name || "Unnamed customer"}</h1><p className="truncate text-sm text-[var(--text-secondary)]">{profile.email}{profile.phone ? ` · ${profile.phone}` : ""}</p></div>
         </div>
         {initialData.canUpdate && <div className="flex gap-2">{profile.status === "SUSPENDED" ? <Button variant="outline" size="sm" disabled={isSaving} onClick={() => requestStatusChange("ACTIVE")}>Activate</Button> : <Button variant="outline" size="sm" disabled={isSaving} onClick={() => requestStatusChange("SUSPENDED")}>Suspend</Button>}</div>}

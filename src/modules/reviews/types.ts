@@ -60,7 +60,7 @@ export type CustomerReviewsPage = {
 };
 
 export type AdminReview = Review & {
-  customerEmail: string;
+  customerEmail: string | null;
   customerName: string | null;
   orderNumber: string;
   orderStatus: string;

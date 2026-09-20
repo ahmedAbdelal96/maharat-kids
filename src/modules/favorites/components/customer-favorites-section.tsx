@@ -10,7 +10,7 @@ import { ProductGrid } from "@/components/ecommerce/product-grid";
 import type { Product } from "@/modules/products/types";
 import type { FavoriteProduct } from "../types";
 
-export function CustomerFavoritesSection({ favorites, currency = "USD" }: { favorites: FavoriteProduct[]; currency?: string }) {
+export function CustomerFavoritesSection({ favorites, currency = "SAR" }: { favorites: FavoriteProduct[]; currency?: string }) {
   const [items, setItems] = useState(favorites);
   const products = items.map((favorite) => favorite.product);
 

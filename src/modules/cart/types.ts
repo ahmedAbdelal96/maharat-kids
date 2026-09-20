@@ -1,4 +1,5 @@
 import type { AppliedPromotionBenefit, GiftLineItem } from "@/modules/promotions/types";
+import type { Market } from "@/modules/market/domain/market";
 
 export type AppliedCoupon = { code: string; name: string; type: "PERCENTAGE" | "FIXED_AMOUNT"; discountAmount: string };
 
@@ -17,6 +18,8 @@ export type CartItem = {
 
 export type Cart = {
   id: string;
+  market: Market | null;
+  currency: "SAR" | "EGP" | null;
   items: CartItem[];
   itemCount: number;
   subtotal: string;
@@ -32,8 +35,8 @@ export type Cart = {
 };
 
 export type CartContext =
-  | { kind: "customer"; customerId: string }
-  | { kind: "guest"; guestTokenHash: string };
+  | { kind: "customer"; customerId: string; market: Market }
+  | { kind: "guest"; guestTokenHash: string; market: Market };
 
 export type CartMergeResult = {
   cart: Cart;

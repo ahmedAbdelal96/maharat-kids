@@ -10,6 +10,7 @@ import { getPublicOffers } from "@/modules/promotions/server/queries";
 import { getPublicStoreSettings } from "@/modules/store/server/queries";
 import { PROMOTION_TYPE_LABELS, type PromotionType } from "@/modules/promotions/constants";
 import { formatMoney } from "@/lib/formatters";
+import { resolveMarket } from "@/modules/market/server/resolver";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { isLocale, type Locale } from "@/config/locale";
@@ -54,6 +55,7 @@ function getBadge(type: PromotionType) {
 }
 
 export default async function OffersPage() {
+  const market = await resolveMarket();
   const t = await getTranslations("storefront");
   const result = await getPublicOffers();
   const offers = result.success ? result.data : [];
@@ -136,12 +138,12 @@ export default async function OffersPage() {
                     {/* Order discount preview */}
                     {offer.type === "ORDER_PERCENTAGE_DISCOUNT" && offer.minimumOrderSubtotal && (
                       <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                        {t("minimumPurchase")}: {formatMoney(offer.minimumOrderSubtotal, "USD")}
+                        {t("minimumPurchase")}: {formatMoney(offer.minimumOrderSubtotal, market.configuration.currency)}
                       </p>
                     )}
                     {offer.type === "ORDER_FIXED_DISCOUNT" && offer.minimumOrderSubtotal && (
                       <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                        {t("minimumPurchase")}: {formatMoney(offer.minimumOrderSubtotal, "USD")}
+                        {t("minimumPurchase")}: {formatMoney(offer.minimumOrderSubtotal, market.configuration.currency)}
                       </p>
                     )}
                   </div>

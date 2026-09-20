@@ -6,7 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { env } from "@/config/env";
 import { appConfig } from "@/config/app.config";
 import { isLocale, localeDirection, localeToIntl, type Locale } from "@/config/locale";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages } from "next-intl/server";
 
 import "../globals.css";
 
@@ -17,6 +17,14 @@ const baseMetadata: Metadata = {
     default: appConfig.name,
   },
   description: appConfig.description,
+  applicationName: "Maharat Kids",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/brand/maharat-kids-mark.webp", type: "image/webp" },
+    ],
+    apple: "/brand/maharat-kids-icon-512.png",
+  },
   openGraph: {
     title: appConfig.name,
     description: appConfig.description,
@@ -27,13 +35,12 @@ const baseMetadata: Metadata = {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const language = isLocale(locale) ? locale : "en";
-  const t = await getTranslations({ locale: language, namespace: "common" });
   return {
     ...baseMetadata,
-    title: { template: `%s | ${appConfig.name}`, default: `${appConfig.name} | ${t("frameworkTitle")}` },
-    description: t("frameworkDescription"),
+    title: { template: `%s | ${appConfig.name}`, default: `${appConfig.name} | مهارة طفل` },
+    description: appConfig.description,
     alternates: { canonical: `/${language}`, languages: { ar: "/ar", en: "/en", "x-default": "/ar" } },
-    openGraph: { ...baseMetadata.openGraph, title: `${appConfig.name} | ${t("frameworkTitle")}`, description: t("frameworkDescription"), locale: localeToIntl(language) },
+    openGraph: { ...baseMetadata.openGraph, title: `${appConfig.name} | مهارة طفل`, description: appConfig.description, locale: localeToIntl(language) },
   };
 }
 

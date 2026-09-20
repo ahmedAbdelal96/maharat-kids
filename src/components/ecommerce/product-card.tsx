@@ -28,7 +28,7 @@ export interface ProductCardProps {
 
 export function ProductCard({
   product,
-  currency = "USD",
+  currency = "SAR",
   priority = false,
   onAddToCart,
   initialFavorite = false,
@@ -50,6 +50,11 @@ export function ProductCard({
   };
 
   const addItem = async (item: Product, quantity = 1) => {
+    if (item.variants?.length) {
+      setIsQuickViewOpen(false);
+      router.push(`/products/${item.slug}`);
+      return;
+    }
     setAddError(null);
     setAddedMessage(false);
     if (onAddToCart) {

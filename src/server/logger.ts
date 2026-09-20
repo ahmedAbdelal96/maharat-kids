@@ -3,7 +3,7 @@ import "server-only";
 export type LogContext = Record<string, unknown>;
 type LogLevel = "info" | "warn" | "error" | "debug";
 
-const sensitiveKey = /(password|passwordhash|resetcode|codehash|token|cookie|authorization|apikey|secret|clientsecret|accesstoken|refreshtoken|databaseurl|email)/i;
+const sensitiveKey = /(password|passwordhash|resetcode|codehash|challenge|verificationcode|otp|\bcode\b|token|cookie|authorization|apikey|secret|clientsecret|accesstoken|refreshtoken|databaseurl|email)/i;
 
 function redact(key: string, value: unknown, depth = 0): unknown {
   if (sensitiveKey.test(key)) return "[REDACTED]";

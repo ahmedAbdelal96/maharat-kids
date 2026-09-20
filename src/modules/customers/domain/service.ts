@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Market } from "@prisma/client";
+
 import { AppError, ForbiddenError, NotFoundError } from "@/core/errors";
 import { failure, success, type Result } from "@/core/result";
 import { normalizeEmail } from "@/modules/identity/domain/rules";
@@ -15,6 +17,15 @@ import type {
   CustomerProfileInput,
 } from "../types";
 import type { CustomerRepository } from "../infrastructure/repository";
+import { normalizeAddressPhone } from "../phone";
+
+function validateAddress(market: Market, input: AddressInput): AddressInput {
+  const required = market === "SAUDI_ARABIA"
+    ? [input.recipientName, input.phone, input.region, input.city, input.district, input.street, input.buildingNumber, input.shortAddress]
+    : [input.recipientName, input.phone, input.governorate, input.city, input.street];
+  if (required.some((value) => !value || !String(value).trim())) throw new AppError("ADDRESS_INVALID", "Please complete the required address fields.");
+  return { ...input, phone: normalizeAddressPhone(market, input.phone), countryCode: market === "SAUDI_ARABIA" ? "SA" : "EG" };
+}
 
 function operationError(operation: string, cause: unknown): AppError {
   return new AppError("CUSTOMER_OPERATION_FAILED", `Customer operation failed: ${operation}.`, { cause });
@@ -27,12 +38,12 @@ export class CustomerService {
     private readonly authorization: AuthorizationService,
   ) {}
 
-  async getAccount(userId: string): Promise<Result<CustomerAccountData, AppError>> {
+  async getAccount(userId: string, market?: Market): Promise<Result<CustomerAccountData, AppError>> {
     try {
       const profile = await this.repository.findCustomerProfile(userId as never);
       if (!profile) return failure(new NotFoundError("CUSTOMER", "Customer account does not exist."));
       const [addresses, password] = await Promise.all([
-        this.repository.findAddresses(userId as never),
+        this.repository.findAddresses(userId as never, market),
         this.repository.findCustomerWithPassword(userId as never),
       ]);
       return success({ profile, addresses, hasLocalPassword: !password?.passwordHash.startsWith("external-only$") });
@@ -52,22 +63,22 @@ export class CustomerService {
     }
   }
 
-  async createAddress(userId: string, input: AddressInput) {
-    try { return success(await this.repository.createAddress(userId as never, input)); }
+  async createAddress(userId: string, market: Market, input: AddressInput) {
+    try { return success(await this.repository.createAddress(userId as never, market, validateAddress(market, input))); }
     catch (error) { return failure(operationError("create address", error)); }
   }
 
-  async updateAddress(userId: string, addressId: string, input: AddressInput) {
-    try { return success(await this.repository.updateAddress(userId as never, addressId, input)); }
+  async updateAddress(userId: string, addressId: string, market: Market, input: AddressInput) {
+    try { return success(await this.repository.updateAddress(userId as never, addressId, market, validateAddress(market, input))); }
     catch (error) {
       if (error instanceof Error && error.message === "ADDRESS_NOT_FOUND") return failure(new NotFoundError("ADDRESS", "Address does not exist."));
       return failure(operationError("update address", error));
     }
   }
 
-  async deleteAddress(userId: string, addressId: string): Promise<Result<true, AppError>> {
+  async deleteAddress(userId: string, addressId: string, market?: Market): Promise<Result<true, AppError>> {
     try {
-      const deleted = await this.repository.deleteAddress(userId as never, addressId);
+      const deleted = await this.repository.deleteAddress(userId as never, addressId, market);
       return deleted ? success(true) : failure(new NotFoundError("ADDRESS", "Address does not exist."));
     } catch (error) { return failure(operationError("delete address", error)); }
   }

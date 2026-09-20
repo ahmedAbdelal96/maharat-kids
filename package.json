@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint src prisma --ext .js,.mjs,.ts,.tsx --cache",
+    "test:mk01": "node --env-file=.env node_modules/tsx/dist/cli.cjs --test tests/mk01-market-money.test.ts && node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk01-acceptance.test.ts",
+    "test:mk02": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk02-addresses.test.ts",
+    "test:mk03": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk03-shipping.test.ts",
+    "test:mk04": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk04-payments.test.ts",
+    "test:mk05": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk05-catalog.test.ts",
+    "test:mk06": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk06-variants.test.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

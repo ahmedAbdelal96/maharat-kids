@@ -59,7 +59,7 @@ export class PasswordResetService {
       const email = normalizeEmail(input.email);
       const user = await this.authRepository.findUserByEmail(email);
 
-      if (!user || user.type !== "CUSTOMER" || user.passwordHash.startsWith("external-only$")) {
+      if (!user || user.type !== "CUSTOMER" || !user.passwordHash || user.passwordHash.startsWith("external-only$")) {
         return success(PASSWORD_RESET_NEUTRAL_MESSAGE);
       }
 

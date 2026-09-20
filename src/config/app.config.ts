@@ -1,7 +1,9 @@
 export const appConfig = {
-  name: "Ecommerce Framework",
-  description: "A reusable, feature-based ecommerce foundation.",
+  name: "Maharat Kids",
+  arabicName: "مهارة طفل",
+  description: "Learning, play, and thoughtful tools for growing minds.",
   defaultLocale: "ar",
+  currency: "SAR",
   defaultRevalidateSeconds: 300,
 } as const;
 

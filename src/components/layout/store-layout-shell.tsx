@@ -19,7 +19,7 @@ export async function StoreLayoutShell({
   children,
   storeName = appConfig.name,
   storeDescription = appConfig.description,
-  currency = "USD",
+  currency = "SAR",
 }: StoreLayoutShellProps) {
   const storefront = await getTranslations("storefront");
   const [cart, favorites, notifications, currentUserResult] = await Promise.all([

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, ChevronLeft, ChevronRight, Gift, Percent, Sparkles, Tag } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Countdown } from "@/components/ecommerce/countdown";
@@ -53,6 +53,9 @@ export function HeroCarousel({
 }) {
   const shouldReduceMotion = useReducedMotion();
   const t = useTranslations("storefront");
+  const locale = useLocale();
+  const heroTitle = locale === "ar" ? "خطوات صغيرة،" : "Little steps. Big";
+  const heroAccent = locale === "ar" ? "ومهارات كبيرة." : "skills for life.";
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const totalSlides = promotions.length;
@@ -86,9 +89,9 @@ export function HeroCarousel({
               {fallbackStoreName}
             </div>
             <h1 className="text-4xl font-black leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl text-[var(--text-primary)]">
-              {t("heroTitle")}
+              {heroTitle}
               <br />
-              <span className="text-[var(--primary)]">{t("heroAccent")}</span>
+              <span className="text-[var(--primary)]">{heroAccent}</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
               {fallbackDescription}

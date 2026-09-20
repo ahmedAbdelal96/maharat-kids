@@ -18,6 +18,10 @@ type Filters = {
   minPrice?: string;
   maxPrice?: string;
   inStock?: boolean;
+  ageMonths?: string;
+  skillId?: string;
+  productTypeId?: string;
+  language?: string;
 };
 
 function flattenCategories(categories: Category[] = [], parentId: string | null = null, depth = 0): { category: Category; depth: number }[] {
@@ -26,7 +30,7 @@ function flattenCategories(categories: Category[] = [], parentId: string | null 
     .flatMap((category) => [{ category, depth }, ...flattenCategories(categories, category.id, depth + 1)]);
 }
 
-export function StorefrontProductsClient({ page, categories = [], currency, filters, favoriteProductIds = [] }: { page: ProductPage; categories?: Category[]; currency: string; filters: Filters; favoriteProductIds?: string[] }) {
+export function StorefrontProductsClient({ page, categories = [], taxonomy, currency, filters, favoriteProductIds = [] }: { page: ProductPage; categories?: Category[]; taxonomy: { skills: Array<{ id: string; nameAr: string; nameEn: string }>; productTypes: Array<{ id: string; nameAr: string; nameEn: string }> }; currency: string; filters: Filters; favoriteProductIds?: string[] }) {
   const router = useRouter();
   const t = useTranslations("products");
   const search = filters.search ?? "";
@@ -34,17 +38,25 @@ export function StorefrontProductsClient({ page, categories = [], currency, filt
   const minPrice = filters.minPrice ?? "";
   const maxPrice = filters.maxPrice ?? "";
   const inStockOnly = filters.inStock ?? false;
+  const ageMonths = filters.ageMonths ?? "";
+  const skillId = filters.skillId ?? "";
+  const productTypeId = filters.productTypeId ?? "";
+  const language = filters.language ?? "";
   const categoryOptions = useMemo(() => flattenCategories(categories), [categories]);
   const selectedCategoryName = categoryOptions.find(({ category }) => category.slug === selectedCategory)?.category.name ?? selectedCategory;
 
   function pushFilters(overrides: Partial<Filters> & { page?: number } = {}) {
-    const next = { search, categorySlug: selectedCategory === "all" ? "" : selectedCategory, minPrice, maxPrice, inStock: inStockOnly, ...overrides };
+    const next = { search, categorySlug: selectedCategory === "all" ? "" : selectedCategory, minPrice, maxPrice, inStock: inStockOnly, ageMonths, skillId, productTypeId, language, ...overrides };
     const params = new URLSearchParams();
     if (next.search?.trim()) params.set("q", next.search.trim());
     if (next.categorySlug) params.set("category", next.categorySlug);
     if (next.minPrice) params.set("min", next.minPrice);
     if (next.maxPrice) params.set("max", next.maxPrice);
     if (next.inStock) params.set("inStock", "true");
+    if (next.ageMonths) params.set("age", next.ageMonths);
+    if (next.skillId) params.set("skill", next.skillId);
+    if (next.productTypeId) params.set("type", next.productTypeId);
+    if (next.language) params.set("language", next.language);
     if (next.page && next.page > 1) params.set("page", String(next.page));
     const query = params.toString();
     router.push(query ? `/products?${query}` : "/products");
@@ -66,6 +78,7 @@ export function StorefrontProductsClient({ page, categories = [], currency, filt
           <div className="space-y-1"><p className="mb-2 text-xs font-bold uppercase tracking-wider">{t("category")}</p><button type="button" onClick={() => pushFilters({ categorySlug: "", page: 1 })} className={`flex w-full justify-between rounded-md px-3 py-2 text-xs ${selectedCategory === "all" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--surface-muted)]"}`}><span>{t("allCategories")}</span><span>{page.total}</span></button>{categoryOptions.map(({ category, depth }) => <button key={category.id} type="button" onClick={() => pushFilters({ categorySlug: category.slug, page: 1 })} className={`flex w-full justify-between rounded-md px-3 py-2 text-left text-xs ${selectedCategory === category.slug ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--surface-muted)]"}`}><span style={{ paddingInlineStart: `${depth * 12}px` }}>{category.name}</span><span>{category.productCount}</span></button>)}</div>
           <div className="space-y-2 border-t border-[var(--border)] pt-4"><p className="text-xs font-bold uppercase tracking-wider">{t("priceRange")}</p><div className="grid grid-cols-2 gap-2"><input defaultValue={minPrice} id="min-price" aria-label={t("min")} placeholder={t("min")} inputMode="decimal" className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs" /><input defaultValue={maxPrice} id="max-price" aria-label={t("max")} placeholder={t("max")} inputMode="decimal" className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs" /></div><Button type="button" variant="outline" size="sm" className="w-full" onClick={() => pushFilters({ minPrice: (document.getElementById("min-price") as HTMLInputElement)?.value ?? "", maxPrice: (document.getElementById("max-price") as HTMLInputElement)?.value ?? "", page: 1 })}>{t("applyPrice")}</Button></div>
           <label className="flex items-center gap-2 border-t border-[var(--border)] pt-4 text-xs"><input type="checkbox" checked={inStockOnly} onChange={(event) => pushFilters({ inStock: event.target.checked, page: 1 })} />{t("inStockOnly")}</label>
+          <div className="space-y-2 border-t border-[var(--border)] pt-4"><p className="text-xs font-bold uppercase tracking-wider">Educational filters</p><select aria-label="Filter by age" value={ageMonths} onChange={(event) => pushFilters({ ageMonths: event.target.value, page: 1 })} className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"><option value="">Any age</option><option value="48">4 years</option><option value="72">6 years</option><option value="96">8 years</option></select><select aria-label="Filter by skill" value={skillId} onChange={(event) => pushFilters({ skillId: event.target.value, page: 1 })} className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"><option value="">Any skill</option>{taxonomy.skills.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select><select aria-label="Filter by product type" value={productTypeId} onChange={(event) => pushFilters({ productTypeId: event.target.value, page: 1 })} className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"><option value="">Any product type</option>{taxonomy.productTypes.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select><select aria-label="Filter by product language" value={language} onChange={(event) => pushFilters({ language: event.target.value, page: 1 })} className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"><option value="">Any product language</option><option value="ARABIC">Arabic</option><option value="ENGLISH">English</option><option value="BILINGUAL">Bilingual</option><option value="LANGUAGE_INDEPENDENT">Language independent</option></select></div>
         </aside>
         <div className="lg:col-span-3">
           {(selectedCategory !== "all" || inStockOnly || search || minPrice || maxPrice) && <div className="mb-5 flex flex-wrap items-center gap-2 text-xs"><span className="text-[var(--text-secondary)]">{t("activeFilters")}:</span>{selectedCategory !== "all" && <Badge variant="secondary" className="gap-1">{t("categoryFilter", { category: selectedCategoryName })}<X className="h-3 w-3 cursor-pointer" onClick={() => pushFilters({ categorySlug: "", page: 1 })} /></Badge>}{inStockOnly && <Badge variant="secondary" className="gap-1">{t("inStockOnly")}<X className="h-3 w-3 cursor-pointer" onClick={() => pushFilters({ inStock: false, page: 1 })} /></Badge>}{search && <Badge variant="secondary" className="gap-1">{t("searchFilter", { query: search })}<X className="h-3 w-3 cursor-pointer" onClick={() => pushFilters({ search: "", page: 1 })} /></Badge>}{(minPrice || maxPrice) && <Badge variant="secondary" className="gap-1">{t("priceFilter", { min: minPrice || "0", max: maxPrice || "∞" })}<X className="h-3 w-3 cursor-pointer" onClick={() => pushFilters({ minPrice: "", maxPrice: "", page: 1 })} /></Badge>}</div>}

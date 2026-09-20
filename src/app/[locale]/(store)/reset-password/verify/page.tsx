@@ -1,10 +1,5 @@
-import { ResetCodeForm } from "@/modules/auth/components/reset-code-form";
+import { notFound } from "next/navigation";
 
-export default async function VerifyResetCodePage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ email?: string }>;
-}) {
-  const params = searchParams ? await searchParams : {};
-  return <ResetCodeForm email={params.email ?? ""} />;
+export default function VerifyResetCodePage() {
+  notFound();
 }

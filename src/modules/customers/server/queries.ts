@@ -5,6 +5,7 @@ import { requireAuthenticatedUser, requireCustomer } from "@/modules/auth/server
 import { AuthorizationService } from "@/modules/identity/domain/services";
 import { PrismaPermissionRepository, PrismaUserRepository } from "@/modules/identity/infrastructure/repository";
 import { createPasswordHasher } from "@/modules/auth/providers/password-hasher";
+import type { Market } from "@prisma/client";
 
 import { CustomerService } from "../domain/service";
 import { PrismaCustomerRepository } from "../infrastructure/repository";
@@ -38,10 +39,10 @@ export function createCustomerSegmentsService() {
   );
 }
 
-export async function getCustomerAccountData() {
+export async function getCustomerAccountData(market?: Market) {
   const actor = await requireCustomer();
   if (!actor.success) return failure(actor.error);
-  return createDefaultCustomerService().getAccount(actor.data.user.id);
+  return createDefaultCustomerService().getAccount(actor.data.user.id, market);
 }
 
 export async function getAdminCustomersPageData(query: CustomerListQuery = {}) {

@@ -3,52 +3,54 @@
 @layer base {
   :root {
     /* Background & Foreground */
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #fbfcfa;
+    --foreground: #17324d;
 
     /* Surfaces */
     --surface: #ffffff;
     --surface-card: #ffffff;
     --surface-elevated: #ffffff;
-    --surface-muted: #f1f5f9;
-    --surface-subtle: #f8fafc;
+    --surface-muted: #f1f7f4;
+    --surface-subtle: #f7faf8;
 
-    /* Brand / Primary (Vibrant Royal Indigo / Blue) */
-    --primary: #2563eb;
+    /* Maharat Kids brand: deep educational blue, green growth, warm play accents */
+    --primary: #125b78;
     --primary-foreground: #ffffff;
-    --primary-hover: #1d4ed8;
-    --primary-soft: #eff6ff;
-    --primary-subtle: #dbeafe;
+    --primary-hover: #0d465e;
+    --primary-soft: #e6f4f5;
+    --primary-subtle: #c9e8e9;
 
     /* Secondary */
-    --secondary: #f1f5f9;
-    --secondary-foreground: #0f172a;
-    --secondary-hover: #e2e8f0;
+    --secondary: #e5f1e8;
+    --secondary-foreground: #245442;
+    --secondary-hover: #d5e9dc;
 
     /* Accent (Warm Amber / Gold) */
-    --accent: #f59e0b;
-    --accent-foreground: #ffffff;
-    --accent-hover: #d97706;
-    --accent-soft: #fef3c7;
+    --accent: #f3a928;
+    --accent-foreground: #3d2b08;
+    --accent-hover: #d88b0d;
+    --accent-soft: #fff4d8;
+    --brand-green: #4e9b68;
+    --brand-pink: #e66a89;
 
     /* Text Hierarchy */
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
+    --text-primary: #17324d;
+    --text-secondary: #536b78;
+    --text-muted: #78909c;
     --text-inverse: #ffffff;
 
     /* Borders & Focus Rings */
-    --border: #e2e8f0;
-    --border-subtle: #f1f5f9;
-    --border-focus: #2563eb;
-    --ring: rgba(37, 99, 235, 0.2);
+    --border: #dbe7e1;
+    --border-subtle: #edf3ef;
+    --border-focus: #125b78;
+    --ring: rgba(18, 91, 120, 0.2);
 
     /* Semantic States */
-    --success: #10b981;
+    --success: #4e9b68;
     --success-foreground: #ffffff;
     --success-subtle: #ecfdf5;
 
-    --warning: #f59e0b;
+    --warning: #e09a19;
     --warning-foreground: #ffffff;
     --warning-subtle: #fffbeb;
 
@@ -56,22 +58,22 @@
     --destructive-foreground: #ffffff;
     --destructive-subtle: #fef2f2;
 
-    --info: #3b82f6;
+    --info: #2e8da4;
     --info-foreground: #ffffff;
     --info-subtle: #eff6ff;
 
     /* Radius Tokens */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.625rem;
-    --radius-lg: 0.875rem;
-    --radius-xl: 1.25rem;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.35rem;
     --radius-2xl: 1.75rem;
     --radius-full: 9999px;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-card-hover: 0 14px 28px -4px rgb(37 99 235 / 0.1), 0 6px 12px -2px rgb(0 0 0 / 0.04);
+    --shadow-card-hover: 0 16px 32px -8px rgb(18 91 120 / 0.16), 0 6px 12px -2px rgb(23 50 77 / 0.06);
     --shadow-elevated: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
     --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
     --shadow-glow: 0 0 30px -4px rgb(37 99 235 / 0.3);

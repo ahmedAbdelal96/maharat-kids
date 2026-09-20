@@ -25,7 +25,7 @@ export type DashboardRecentOrder = {
   id: string;
   orderNumber: string;
   customerName: string | null;
-  customerEmail: string;
+  customerEmail: string | null;
   total: string;
   currency: string;
   paymentStatus: string;

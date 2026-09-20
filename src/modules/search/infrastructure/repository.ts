@@ -6,6 +6,7 @@ import { getPrismaClient } from "@/database/prisma";
 import { getInventoryState } from "@/modules/inventory/domain/inventory";
 import { getApprovedRatingSummaries } from "@/modules/reviews/infrastructure/rating-aggregation";
 import { normalizeSearchQuery, searchRank } from "../domain/normalization";
+import { resolveMarket } from "@/modules/market/server/resolver";
 import type { SearchSuggestionCategory, SearchSuggestionProduct, SearchSuggestions } from "../types";
 
 type ProductSuggestionRecord = {
@@ -19,6 +20,7 @@ type ProductSuggestionRecord = {
   category: { name: string; slug: string } | null;
   translations?: { locale: "ar" | "en"; name: string; shortDescription: string | null; description: string | null }[];
   images: Array<{ url: string | null; media: { url: string } | null }>;
+  variants?: Array<{ active: boolean; trackInventory: boolean; stockQuantity: number; marketPrices: Array<{ price: { toFixed: (digits: number) => string }; compareAtPrice: { toFixed: (digits: number) => string } | null }> }>;
 };
 
 export interface SearchRepository {
@@ -43,6 +45,7 @@ export class PrismaSearchRepository implements SearchRepository {
   async findSuggestions(rawQuery: string, requestedLocale?: "ar" | "en"): Promise<SearchSuggestions> {
     const query = normalizeSearchQuery(rawQuery);
     if (query.length < 2) return { query, products: [], categories: [] };
+    const market = await resolveMarket();
     let locale: "ar" | "en" = requestedLocale ?? "ar";
     if (!requestedLocale) {
       try { locale = (await getLocale()) === "en" ? "en" : "ar"; } catch { /* API requests without a locale use the default. */ }
@@ -53,6 +56,7 @@ export class PrismaSearchRepository implements SearchRepository {
       this.db.product.findMany({
         where: {
           status: "ACTIVE",
+          marketPrices: { some: { market: market.market } },
           OR: [
             { name: contains },
             { shortDescription: contains },
@@ -67,8 +71,10 @@ export class PrismaSearchRepository implements SearchRepository {
           slug: true,
           price: true,
           compareAtPrice: true,
+          marketPrices: { where: { market: market.market }, select: { price: true, compareAtPrice: true } },
           trackInventory: true,
           stockQuantity: true,
+          variants: { where: { active: true }, select: { active: true, trackInventory: true, stockQuantity: true, marketPrices: { where: { market: market.market }, select: { price: true, compareAtPrice: true } } } },
           category: { select: { name: true, slug: true } },
           translations: { select: { locale: true, name: true, shortDescription: true, description: true } },
           images: {
@@ -105,9 +111,9 @@ export class PrismaSearchRepository implements SearchRepository {
         slug: product.slug,
         name: displayName(product),
         imageUrl: imageUrl(product.images),
-        price: product.price.toFixed(2),
-        compareAtPrice: product.compareAtPrice?.toFixed(2) ?? null,
-        availability: toAvailability(product),
+        price: product.variants?.length && product.variants.some((variant) => !variant.trackInventory || variant.stockQuantity > 0) ? Math.min(...product.variants.filter((variant) => !variant.trackInventory || variant.stockQuantity > 0).map((variant) => Number(variant.marketPrices[0]?.price.toFixed(2) ?? product.marketPrices[0]?.price.toFixed(2) ?? product.price.toFixed(2)))).toFixed(2) : product.marketPrices[0]?.price.toFixed(2) ?? product.price.toFixed(2),
+        compareAtPrice: product.marketPrices[0]?.compareAtPrice?.toFixed(2) ?? product.compareAtPrice?.toFixed(2) ?? null,
+        availability: product.variants?.length ? (product.variants.some((variant) => !variant.trackInventory || variant.stockQuantity > 0) ? "IN_STOCK" : "OUT_OF_STOCK") : toAvailability(product),
         categoryName: product.category?.name ?? null,
         ...(ratingSummary ? { ratingSummary } : {}),
       };
@@ -118,6 +124,6 @@ export class PrismaSearchRepository implements SearchRepository {
       .slice(0, 4)
       .map((category) => ({ type: "category", id: category.id, slug: category.slug, name: category.translations?.find((item) => item.locale === locale)?.name ?? category.name, parentName: category.parent?.name ?? null }));
 
-    return { query, products: productSuggestions, categories: categorySuggestions };
+    return { query, currency: market.configuration.currency, products: productSuggestions, categories: categorySuggestions };
   }
 }

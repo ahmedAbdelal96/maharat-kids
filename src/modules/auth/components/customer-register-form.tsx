@@ -12,6 +12,7 @@ import { isSafeReturnTo } from "../domain/policies";
 import { registerCustomer } from "../server/actions";
 import { stripLocalePrefix } from "@/i18n/paths";
 import { useLocale, useTranslations } from "next-intl";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export function CustomerRegisterForm({
   googleAvailable,
@@ -61,8 +62,8 @@ export function CustomerRegisterForm({
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12 sm:px-6">
       <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="space-y-2 p-0 pb-6 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-muted)] text-[var(--primary)]">
-            <Lock className="h-6 w-6" />
+          <div className="mx-auto mb-2 flex items-center justify-center">
+            <BrandLockup variant="auth" priority />
           </div>
           <CardTitle className="text-2xl font-bold">{t("createAccount")}</CardTitle>
           <CardDescription>{checkoutContinuation ? t("createForCheckout") : t("registerDescription")}</CardDescription>

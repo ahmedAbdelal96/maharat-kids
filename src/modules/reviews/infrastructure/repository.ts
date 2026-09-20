@@ -56,7 +56,7 @@ export interface ReviewRepository {
   updateCustomer(customerId: string, reviewId: string, rating: number, comment: string | null): Promise<Review>;
   getPublic(productId: string, page?: number, pageSize?: number): Promise<PublicReviewPage>;
   getAdmin(filters?: AdminReviewFilters): Promise<AdminReviewsPage>;
-  moderate(actorId: string, reviewId: string, status: "APPROVED" | "REJECTED", reason: string | null): Promise<Review & { customerEmail: string; productName: string }>;
+  moderate(actorId: string, reviewId: string, status: "APPROVED" | "REJECTED", reason: string | null): Promise<Review & { customerEmail: string | null; productName: string }>;
 }
 
 export class PrismaReviewRepository implements ReviewRepository {
@@ -125,7 +125,7 @@ export class PrismaReviewRepository implements ReviewRepository {
     for (const row of grouped) if (row.rating >= 1 && row.rating <= 5) distribution[row.rating as 1 | 2 | 3 | 4 | 5] = row._count._all;
     const count = grouped.reduce((sum, row) => sum + row._count._all, 0);
     const average = count ? grouped.reduce((sum, row) => sum + (row._avg.rating ?? 0) * row._count._all, 0) / count : 0;
-    return { items: records.map((record) => toPublicReview(record, record.user.name?.trim() || record.user.email.split("@")[0] || "Verified customer")), summary: { average: Math.round(average * 10) / 10, count, distribution }, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+    return { items: records.map((record) => toPublicReview(record, record.user.name?.trim() || record.user.email?.split("@")[0] || "Verified customer")), summary: { average: Math.round(average * 10) / 10, count, distribution }, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
   }
 
   async getAdmin(filters: AdminReviewFilters = {}): Promise<AdminReviewsPage> {

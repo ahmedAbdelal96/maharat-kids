@@ -20,6 +20,7 @@ import { Link } from "@/i18n/navigation";
 import { getCustomerReviewEligibility, getPublicProductReviews } from "@/modules/reviews/server/queries";
 import { ProductReviews } from "@/modules/reviews/components/product-reviews";
 import { getTranslations } from "next-intl/server";
+import { resolveMarket } from "@/modules/market/server/resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const navigation = await getTranslations("navigation");
   const t = await getTranslations("storefront");
   const availability = await getTranslations("common.availability");
-  const [product, categories, allProducts, settings, favoriteIds] = await Promise.all([getPublicProduct(slug), getPublicCategories(), getPublicProducts({ pageSize: 48 }), getPublicStoreSettings(), getCurrentCustomerFavoriteIds()]);
+  const [product, categories, allProducts, settings, favoriteIds, market] = await Promise.all([getPublicProduct(slug), getPublicCategories(), getPublicProducts({ pageSize: 48 }), getPublicStoreSettings(), getCurrentCustomerFavoriteIds(), resolveMarket()]);
   if (!product.success) throw product.error;
   if (!categories.success) throw categories.error;
   if (!allProducts.success) throw allProducts.error;
@@ -79,9 +80,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className={`mt-3 text-sm font-semibold ${available ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
               {available ? (current.trackInventory ? t("stockAvailable", { count: current.stockQuantity }) : availability("available")) : availability("outOfStock")}
             </p>
-            <div className="mt-4">
-              <PriceDisplay price={current.price} originalPrice={current.compareAtPrice} size="xl" />
-            </div>
+            {!current.variants?.length && <div className="mt-4"><PriceDisplay price={current.price} originalPrice={current.compareAtPrice} currency={market.configuration.currency} size="xl" /></div>}
 
             {/* Promotional Offer Callout */}
             {activePromo && (
@@ -113,7 +112,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </p>
           </div>
 
-          <ProductDetailActions product={current} initialFavorite={favoriteIds.includes(current.id)} />
+          <ProductDetailActions product={current} currency={market.configuration.currency} initialFavorite={favoriteIds.includes(current.id)} />
           
           <div className="grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-6 text-xs text-[var(--text-secondary)]">
             <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-[var(--primary)]" />{t("delivery")}</div>
@@ -124,11 +123,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <ProductDetailTabs product={current} />
+      {(current.minAgeMonths != null || current.skillIds.length > 0 || current.materials || current.usageInstructions) && <section className="grid gap-5 border-t border-[var(--border)] pt-10 md:grid-cols-2"><div><h2 className="text-xl font-bold">{locale === "ar" ? "المعلومات التعليمية" : "Educational information"}</h2><dl className="mt-4 space-y-3 text-sm">{current.minAgeMonths != null && current.maxAgeMonths != null && <div className="flex justify-between gap-4"><dt className="text-[var(--text-secondary)]">{locale === "ar" ? "العمر المناسب" : "Suitable age"}</dt><dd className="font-semibold">{Math.floor(current.minAgeMonths / 12)}–{Math.floor(current.maxAgeMonths / 12)} {locale === "ar" ? "سنوات" : "years"}</dd></div>}{current.productLanguage && <div className="flex justify-between gap-4"><dt className="text-[var(--text-secondary)]">{locale === "ar" ? "لغة المنتج" : "Product language"}</dt><dd className="font-semibold">{current.productLanguage.replaceAll("_", " ")}</dd></div>}{current.difficultyLevel && <div className="flex justify-between gap-4"><dt className="text-[var(--text-secondary)]">{locale === "ar" ? "المستوى" : "Difficulty"}</dt><dd className="font-semibold">{current.difficultyLevel}</dd></div>}</dl>{current.skillIds.length > 0 && <p className="mt-4 text-sm text-[var(--text-secondary)]">{locale === "ar" ? "ينمي مهارات متعددة ضمن تجربة لعب واضحة." : "Designed to support more than one learning skill through play."}</p>}</div><div className="space-y-4 text-sm">{current.materials && <p><strong>{locale === "ar" ? "الخامات" : "Materials"}:</strong> {current.materials}</p>}{current.numberOfPieces != null && <p><strong>{locale === "ar" ? "عدد القطع" : "Pieces"}:</strong> {current.numberOfPieces}</p>}{current.usageInstructions && <p><strong>{locale === "ar" ? "طريقة الاستخدام" : "How to use"}:</strong> {current.usageInstructions}</p>}{current.supervisionRequired && <p className="rounded-md bg-[var(--surface-muted)] p-3">{locale === "ar" ? "يوصى بإشراف شخص بالغ أثناء النشاط." : "Adult supervision is recommended during this activity."}</p>}</div></section>}
       {publicReviews.success && <ProductReviews productId={current.id} initialReviews={publicReviews.data} eligibility={customerEligibility.success ? customerEligibility.data : null} />}
       {related.length > 0 && (
         <section className="space-y-5 border-t border-[var(--border)] pt-10">
           <h2 className="text-xl font-bold">{t("relatedProducts")}</h2>
-          <ProductGrid products={related} currency={settings.data.currency} favoriteProductIds={favoriteIds} columns={3} />
+          <ProductGrid products={related} currency={market.configuration.currency} favoriteProductIds={favoriteIds} columns={3} />
         </section>
       )}
     </div>

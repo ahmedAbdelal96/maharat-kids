@@ -166,11 +166,15 @@ export class CategoryService {
         if (!mediaAllowed.success) return failure(mediaAllowed.error);
       }
 
+      const requestedSlug = input.slug?.trim();
+      const slug = requestedSlug && requestedSlug !== current.slug
+        ? await generateUniqueSlug(requestedSlug, (candidate) => this.repository.slugExists(candidate))
+        : current.slug;
       const updated = await this.repository.update({
           ...input,
           name: input.name.trim(),
           imageMediaId,
-          slug: current.slug,
+          slug,
         });
       if (current.imageMediaId && current.imageMediaId !== imageMediaId) {
         await this.media?.cleanupUnused([current.imageMediaId]);

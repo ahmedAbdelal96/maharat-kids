@@ -7,7 +7,7 @@ import {
   defaultRoleDefinitions,
 } from "../src/modules/identity/constants";
 import { defaultStoreSettings } from "../src/modules/store/constants";
-import { defaultPaymentMethod } from "../src/modules/payments/constants";
+import { defaultPaymentMethods } from "../src/modules/payments/constants";
 import { ScryptPasswordHasher } from "../src/modules/auth/providers/password-hasher-core";
 
 const prisma = new PrismaClient();
@@ -54,18 +54,25 @@ async function removeSeedMediaIfUnused(mediaId: string | null) {
 
 async function seedCatalog(): Promise<void> {
   const categoryDefinitions = [
-    { slug: "home-living", name: "Home & Living", parentSlug: null, description: "Warm, practical pieces for everyday spaces.", start: "#0f766e", end: "#164e63" },
-    { slug: "furniture", name: "Furniture", parentSlug: "home-living", description: "Comfortable foundations for living and dining rooms.", start: "#0369a1", end: "#1e3a8a" },
-    { slug: "chairs", name: "Chairs", parentSlug: "furniture", description: "Seating designed for long, comfortable days.", start: "#7c3aed", end: "#312e81" },
-    { slug: "tables", name: "Tables", parentSlug: "furniture", description: "Clean surfaces for meals, work, and gathering.", start: "#b45309", end: "#7c2d12" },
-    { slug: "technology", name: "Technology", parentSlug: null, description: "Useful technology for work, home, and travel.", start: "#1d4ed8", end: "#1e1b4b" },
-    { slug: "mobile-devices", name: "Mobile Devices", parentSlug: "technology", description: "Connected essentials that keep up with your day.", start: "#0891b2", end: "#164e63" },
-    { slug: "smartphones", name: "Smartphones", parentSlug: "mobile-devices", description: "Modern phones with bright displays and reliable battery life.", start: "#2563eb", end: "#172554" },
-    { slug: "accessories", name: "Accessories", parentSlug: "mobile-devices", description: "Small upgrades that make devices easier to use.", start: "#db2777", end: "#4c1d95" },
-    { slug: "fashion", name: "Fashion", parentSlug: null, description: "Simple, versatile pieces for every wardrobe.", start: "#be123c", end: "#4c0519" },
-    { slug: "men", name: "Men", parentSlug: "fashion", description: "Everyday layers and accessories with clean lines.", start: "#475569", end: "#0f172a" },
-    { slug: "women", name: "Women", parentSlug: "fashion", description: "Easy-to-wear pieces for work and weekends.", start: "#c026d3", end: "#581c87" },
+    { slug: "home-living", name: "Learning & Play", parentSlug: null, description: "Thoughtful tools for curious minds and everyday discovery.", start: "#125b78", end: "#2e8da4" },
+    { slug: "furniture", name: "Create & Make", parentSlug: "home-living", description: "Creative materials for hands-on learning and expression.", start: "#4e9b68", end: "#245442" },
+    { slug: "chairs", name: "Early Years", parentSlug: "furniture", description: "Gentle first steps for growing minds.", start: "#f3a928", end: "#d88b0d" },
+    { slug: "tables", name: "School Skills", parentSlug: "furniture", description: "Build confidence through focused, playful practice.", start: "#e66a89", end: "#b64567" },
+    { slug: "technology", name: "Discover & Explore", parentSlug: null, description: "Activities that turn curiosity into new skills.", start: "#125b78", end: "#0d465e" },
+    { slug: "mobile-devices", name: "Puzzles & Games", parentSlug: "technology", description: "Playful challenges for thinking, sharing, and problem solving.", start: "#2e8da4", end: "#125b78" },
+    { slug: "smartphones", name: "STEM & Discovery", parentSlug: "mobile-devices", description: "Explore science, numbers, and the world around us.", start: "#4e9b68", end: "#125b78" },
+    { slug: "accessories", name: "Creative Kits", parentSlug: "mobile-devices", description: "Open-ended kits for making something wonderful.", start: "#e66a89", end: "#b64567" },
+    { slug: "fashion", name: "By Age", parentSlug: null, description: "Find a thoughtful next step for every stage.", start: "#f3a928", end: "#e66a89" },
+    { slug: "men", name: "Ages 3–5", parentSlug: "fashion", description: "Playful foundations for early learners.", start: "#4e9b68", end: "#245442" },
+    { slug: "women", name: "Ages 6–8", parentSlug: "fashion", description: "Growing confidence through play and practice.", start: "#2e8da4", end: "#125b78" },
   ] as const;
+
+  // Keep development presentation focused on the Maharat Kids catalog without
+  // deleting any existing records that may be referenced by local test data.
+  await prisma.category.updateMany({
+    where: { slug: { notIn: categoryDefinitions.map(({ slug }) => slug) } },
+    data: { isActive: false },
+  });
 
   const categoryMedia = new Map<string, string>();
   for (const category of categoryDefinitions) {
@@ -83,30 +90,30 @@ async function seedCatalog(): Promise<void> {
     });
     categoryIds.set(category.slug, saved.id);
     const arabicCategoryNames: Record<string, string> = {
-      "home-living": "المنزل والمعيشة",
-      furniture: "الأثاث",
-      chairs: "الكراسي",
-      tables: "الطاولات",
-      technology: "التكنولوجيا",
-      "mobile-devices": "الأجهزة المحمولة",
-      smartphones: "الهواتف الذكية",
-      accessories: "الإكسسوارات",
-      fashion: "الأزياء",
-      men: "رجالي",
-      women: "نسائي",
+      "home-living": "التعلم واللعب",
+      furniture: "اصنع وابتكر",
+      chairs: "السنوات الأولى",
+      tables: "مهارات المدرسة",
+      technology: "اكتشف واستكشف",
+      "mobile-devices": "الألغاز والألعاب",
+      smartphones: "العلوم والاكتشاف",
+      accessories: "حقائب إبداعية",
+      fashion: "حسب العمر",
+      men: "من 3 إلى 5 سنوات",
+      women: "من 6 إلى 8 سنوات",
     };
     const arabicCategoryDescriptions: Record<string, string> = {
-      "home-living": "قطع عملية ودافئة للمساحات اليومية.",
-      furniture: "أساسيات مريحة لغرف المعيشة والطعام.",
-      chairs: "مقاعد مصممة لأيام طويلة ومريحة.",
-      tables: "أسطح أنيقة للوجبات والعمل والتجمعات.",
-      technology: "تقنيات مفيدة للعمل والمنزل والتنقل.",
-      "mobile-devices": "أساسيات متصلة تواكب يومك.",
-      smartphones: "هواتف عصرية بشاشات مشرقة وبطاريات موثوقة.",
-      accessories: "إضافات صغيرة تجعل استخدام أجهزتك أسهل.",
-      fashion: "قطع عملية ومتنوعة لكل إطلالة.",
-      men: "ملابس وإكسسوارات يومية بتصميمات أنيقة.",
-      women: "قطع سهلة الارتداء للعمل وعطلات نهاية الأسبوع.",
+      "home-living": "أدوات مختارة لعقول فضولية واكتشاف يومي.",
+      furniture: "خامات إبداعية للتعلم العملي والتعبير.",
+      chairs: "خطوات أولى لطيفة لعقول تنمو.",
+      tables: "نبني الثقة من خلال التدريب واللعب.",
+      technology: "أنشطة تحول الفضول إلى مهارات جديدة.",
+      "mobile-devices": "تحديات مرحة للتفكير والمشاركة وحل المشكلات.",
+      smartphones: "استكشف العلوم والأرقام والعالم من حولك.",
+      accessories: "مجموعات مفتوحة لصنع شيء رائع.",
+      fashion: "اختر الخطوة التالية المناسبة لكل مرحلة.",
+      men: "أساسيات مرحة للمتعلمين الصغار.",
+      women: "ثقة تنمو من خلال اللعب والتدريب.",
     };
     const arabicCategoryDescription = arabicCategoryDescriptions[category.slug] ?? category.description;
     await prisma.categoryTranslation.upsert({ where: { categoryId_locale: { categoryId: saved.id, locale: "ar" } }, update: { name: arabicCategoryNames[category.slug] ?? category.name, description: arabicCategoryDescription }, create: { categoryId: saved.id, locale: "ar", name: arabicCategoryNames[category.slug] ?? category.name, description: arabicCategoryDescription } });
@@ -114,14 +121,14 @@ async function seedCatalog(): Promise<void> {
   }
 
   const productDefinitions = [
-    { slug: "oak-lounge-chair", name: "Oak Lounge Chair", categorySlug: "chairs", price: "149.00", compareAtPrice: "179.00", stockQuantity: 12, isFeatured: true, description: "A warm oak frame with a comfortable woven seat for quiet corners." },
-    { slug: "solid-wood-dining-table", name: "Solid Wood Dining Table", categorySlug: "tables", price: "329.00", compareAtPrice: null, stockQuantity: 5, isFeatured: true, description: "A sturdy dining table with a clean silhouette for shared meals." },
-    { slug: "pocket-smartphone", name: "Pocket Smartphone", categorySlug: "smartphones", price: "549.00", compareAtPrice: "599.00", stockQuantity: 18, isFeatured: true, description: "A bright, responsive phone made for everyday communication and media." },
-    { slug: "everyday-phone-case", name: "Everyday Phone Case", categorySlug: "accessories", price: "24.00", compareAtPrice: null, stockQuantity: 64, isFeatured: false, description: "A lightweight protective case with a soft-touch grip." },
-    { slug: "mens-utility-jacket", name: "Men's Utility Jacket", categorySlug: "men", price: "89.00", compareAtPrice: "109.00", stockQuantity: 22, isFeatured: true, description: "A versatile layer with practical pockets and a relaxed fit." },
-    { slug: "womens-canvas-tote", name: "Women's Canvas Tote", categorySlug: "women", price: "42.00", compareAtPrice: null, stockQuantity: 31, isFeatured: true, description: "A durable daily tote with room for the essentials." },
-    { slug: "reading-floor-lamp", name: "Reading Floor Lamp", categorySlug: "home-living", price: "118.00", compareAtPrice: null, stockQuantity: 9, isFeatured: false, description: "Soft directional light for reading, relaxing, and late-night work." },
-    { slug: "weekend-backpack", name: "Weekend Backpack", categorySlug: "fashion", price: "68.00", compareAtPrice: null, stockQuantity: 0, isFeatured: false, description: "A compact, structured backpack for short trips and busy days." },
+    { slug: "oak-lounge-chair", name: "Build & Balance Blocks", categorySlug: "chairs", price: "149.00", compareAtPrice: "179.00", stockQuantity: 12, isFeatured: true, description: "Open-ended wooden blocks for building, balancing, and storytelling." },
+    { slug: "solid-wood-dining-table", name: "My First Discovery Set", categorySlug: "tables", price: "329.00", compareAtPrice: null, stockQuantity: 5, isFeatured: true, description: "A hands-on set of gentle activities for curious early learners." },
+    { slug: "pocket-smartphone", name: "Little Scientist Kit", categorySlug: "smartphones", price: "549.00", compareAtPrice: "599.00", stockQuantity: 18, isFeatured: true, description: "Safe experiments that make science feel close, clear, and exciting." },
+    { slug: "everyday-phone-case", name: "Storytelling Cards", categorySlug: "accessories", price: "24.00", compareAtPrice: null, stockQuantity: 64, isFeatured: false, description: "A playful card set for language, imagination, and shared stories." },
+    { slug: "mens-utility-jacket", name: "Make It Your Way Art Kit", categorySlug: "men", price: "89.00", compareAtPrice: "109.00", stockQuantity: 22, isFeatured: true, description: "Creative materials that invite children to draw, build, and explore." },
+    { slug: "womens-canvas-tote", name: "Little Learner Activity Book", categorySlug: "women", price: "42.00", compareAtPrice: null, stockQuantity: 31, isFeatured: true, description: "A bright collection of age-friendly activities for quiet moments." },
+    { slug: "reading-floor-lamp", name: "Feelings & Friends Game", categorySlug: "home-living", price: "118.00", compareAtPrice: null, stockQuantity: 9, isFeatured: false, description: "A gentle game for conversation, empathy, and confident expression." },
+    { slug: "weekend-backpack", name: "Little Explorer Bag", categorySlug: "fashion", price: "68.00", compareAtPrice: null, stockQuantity: 0, isFeatured: false, description: "A light, practical bag for carrying small discoveries on the go." },
   ] as const;
 
   for (const product of productDefinitions) {
@@ -165,30 +172,86 @@ async function seedCatalog(): Promise<void> {
       });
     }
     const arabicProductNames: Record<string, string> = {
-      "oak-lounge-chair": "كرسي استرخاء من خشب البلوط",
-      "solid-wood-dining-table": "طاولة طعام من الخشب الصلب",
-      "pocket-smartphone": "هاتف ذكي صغير",
-      "everyday-phone-case": "جراب هاتف يومي",
-      "mens-utility-jacket": "جاكيت عملي رجالي",
-      "womens-canvas-tote": "حقيبة قماش نسائية",
-      "reading-floor-lamp": "مصباح أرضي للقراءة",
-      "weekend-backpack": "حقيبة ظهر لعطلة نهاية الأسبوع",
+      "oak-lounge-chair": "مكعبات البناء والتوازن",
+      "solid-wood-dining-table": "مجموعة الاكتشاف الأولى",
+      "pocket-smartphone": "مجموعة العالم الصغير",
+      "everyday-phone-case": "بطاقات الحكايات",
+      "mens-utility-jacket": "مجموعة اصنعها بطريقتك",
+      "womens-canvas-tote": "كتاب أنشطة المتعلم الصغير",
+      "reading-floor-lamp": "لعبة المشاعر والأصدقاء",
+      "weekend-backpack": "حقيبة المستكشف الصغير",
     };
     const arabicProductDescriptions: Record<string, string> = {
-      "oak-lounge-chair": "إطار من خشب البلوط مع مقعد منسوج مريح للزوايا الهادئة.",
-      "solid-wood-dining-table": "طاولة طعام متينة بتصميم أنيق للوجبات المشتركة.",
-      "pocket-smartphone": "هاتف سريع الاستجابة بشاشة مشرقة للتواصل والترفيه اليومي.",
-      "everyday-phone-case": "جراب خفيف للحماية مع قبضة مريحة.",
-      "mens-utility-jacket": "طبقة عملية بجيوب مفيدة وقصة مريحة.",
-      "womens-canvas-tote": "حقيبة قماش متينة للاستخدام اليومي وتتسع لاحتياجاتك.",
-      "reading-floor-lamp": "إضاءة ناعمة وموجهة للقراءة والاسترخاء والعمل.",
-      "weekend-backpack": "حقيبة ظهر منظمة للرحلات القصيرة والأيام المزدحمة.",
+      "oak-lounge-chair": "مكعبات خشبية مفتوحة للبناء والتوازن وصناعة الحكايات.",
+      "solid-wood-dining-table": "أنشطة عملية لطيفة للمتعلمين الصغار الفضوليين.",
+      "pocket-smartphone": "تجارب آمنة تجعل العلوم قريبة وواضحة وممتعة.",
+      "everyday-phone-case": "بطاقات مرحة للغة والخيال والحكايات المشتركة.",
+      "mens-utility-jacket": "خامات إبداعية للرسم والبناء والاستكشاف.",
+      "womens-canvas-tote": "أنشطة مشرقة مناسبة للعمر للحظات الهادئة.",
+      "reading-floor-lamp": "لعبة لطيفة للحوار والتعاطف والتعبير الواثق.",
+      "weekend-backpack": "حقيبة خفيفة وعملية لحمل الاكتشافات الصغيرة.",
     };
     const arabicProductDescription = arabicProductDescriptions[product.slug] ?? product.description;
     const savedProduct = await prisma.product.findUniqueOrThrow({ where: { slug: product.slug }, select: { id: true } });
+    await prisma.productMarketPrice.upsert({ where: { productId_market: { productId: savedProduct.id, market: "SAUDI_ARABIA" } }, update: { price: product.price, compareAtPrice: product.compareAtPrice }, create: { productId: savedProduct.id, market: "SAUDI_ARABIA", price: product.price, compareAtPrice: product.compareAtPrice } });
+    const egyptSeedPrices: Record<string, { price: string; compareAtPrice: string | null }> = { "oak-lounge-chair": { price: "900.00", compareAtPrice: "1050.00" }, "solid-wood-dining-table": { price: "1850.00", compareAtPrice: null }, "pocket-smartphone": { price: "3100.00", compareAtPrice: "3400.00" }, "everyday-phone-case": { price: "180.00", compareAtPrice: null }, "mens-utility-jacket": { price: "520.00", compareAtPrice: "650.00" }, "womens-canvas-tote": { price: "290.00", compareAtPrice: null }, "reading-floor-lamp": { price: "700.00", compareAtPrice: null }, "weekend-backpack": { price: "420.00", compareAtPrice: null } };
+    const egyptPrice = egyptSeedPrices[product.slug];
+    await prisma.productMarketPrice.upsert({ where: { productId_market: { productId: savedProduct.id, market: "EGYPT" } }, update: egyptPrice, create: { productId: savedProduct.id, market: "EGYPT", ...egyptPrice } });
     await prisma.productTranslation.upsert({ where: { productId_locale: { productId: savedProduct.id, locale: "ar" } }, update: { name: arabicProductNames[product.slug] ?? product.name, shortDescription: arabicProductDescription, description: arabicProductDescription }, create: { productId: savedProduct.id, locale: "ar", name: arabicProductNames[product.slug] ?? product.name, shortDescription: arabicProductDescription, description: arabicProductDescription } });
     await prisma.productTranslation.upsert({ where: { productId_locale: { productId: savedProduct.id, locale: "en" } }, update: { name: product.name, shortDescription: product.description, description: product.description }, create: { productId: savedProduct.id, locale: "en", name: product.name, shortDescription: product.description, description: product.description } });
   }
+
+  // Educational taxonomies are intentionally data, not code paths. Administrators
+  // can add, reorder, disable, and relate new values without a migration.
+  const educationalCategories = [
+    { slug: "talking-language", name: "Speech & Language", nameAr: "التخاطب واللغة", parentSlug: null },
+    { slug: "talking-books", name: "Speech Books", nameAr: "كتب التخاطب", parentSlug: "talking-language" },
+    { slug: "talking-tools", name: "Speech Tools", nameAr: "أدوات التخاطب", parentSlug: "talking-language" },
+    { slug: "focus-attention", name: "Focus & Attention", nameAr: "التركيز والانتباه", parentSlug: null },
+    { slug: "visual-perception", name: "Visual Perception", nameAr: "الإدراك البصري", parentSlug: "focus-attention" },
+    { slug: "sensory-integration", name: "Sensory Integration", nameAr: "التكامل الحسي", parentSlug: null },
+    { slug: "creative-play", name: "Play & Learn", nameAr: "ألعب وتعلم", parentSlug: null },
+    { slug: "arabic-learning", name: "Learn Arabic", nameAr: "تعلم العربية", parentSlug: "creative-play" },
+    { slug: "puzzles", name: "Puzzles", nameAr: "البازل", parentSlug: "creative-play" },
+    { slug: "educational-games", name: "Educational Games", nameAr: "الألعاب التعليمية", parentSlug: null },
+    { slug: "educational-books", name: "Educational Books", nameAr: "الكتب التعليمية", parentSlug: null },
+    { slug: "bundles", name: "Bundles", nameAr: "البكجات والمجموعات", parentSlug: null },
+  ] as const;
+  const educationalIds = new Map<string, string>();
+  for (const category of educationalCategories) {
+    const parentId = category.parentSlug ? educationalIds.get(category.parentSlug) ?? null : null;
+    const saved = await prisma.category.upsert({ where: { slug: category.slug }, update: { name: category.name, parentId, isActive: true, showInNavigation: true }, create: { slug: category.slug, name: category.name, parentId, isActive: true, showInNavigation: true } });
+    educationalIds.set(category.slug, saved.id);
+    await prisma.categoryTranslation.upsert({ where: { categoryId_locale: { categoryId: saved.id, locale: "ar" } }, update: { name: category.nameAr }, create: { categoryId: saved.id, locale: "ar", name: category.nameAr } });
+    await prisma.categoryTranslation.upsert({ where: { categoryId_locale: { categoryId: saved.id, locale: "en" } }, update: { name: category.name }, create: { categoryId: saved.id, locale: "en", name: category.name } });
+  }
+  const seedTaxonomy = async (model: "skill" | "learningObjective" | "productType" | "useContext", rows: Array<{ slug: string; nameAr: string; nameEn: string }>) => {
+    for (const [sortOrder, row] of rows.entries()) {
+      const args = { where: { slug: row.slug }, update: { ...row, isActive: true, sortOrder }, create: { ...row, sortOrder } };
+      if (model === "skill") await prisma.skill.upsert(args);
+      else if (model === "learningObjective") await prisma.learningObjective.upsert(args);
+      else if (model === "productType") await prisma.productType.upsert(args);
+      else await prisma.useContext.upsert(args);
+    }
+  };
+  await seedTaxonomy("skill", [
+    { slug: "focus", nameAr: "التركيز", nameEn: "Focus" }, { slug: "attention", nameAr: "الانتباه", nameEn: "Attention" }, { slug: "visual-perception", nameAr: "الإدراك البصري", nameEn: "Visual perception" }, { slug: "auditory-perception", nameAr: "الإدراك السمعي", nameEn: "Auditory perception" }, { slug: "language", nameAr: "اللغة", nameEn: "Language" }, { slug: "fine-motor", nameAr: "المهارات الحركية الدقيقة", nameEn: "Fine motor skills" }, { slug: "problem-solving", nameAr: "حل المشكلات", nameEn: "Problem solving" }, { slug: "sensory-integration", nameAr: "التكامل الحسي", nameEn: "Sensory integration" }, { slug: "independence", nameAr: "الاستقلالية", nameEn: "Independence" }, { slug: "sequencing", nameAr: "التسلسل", nameEn: "Sequencing" },
+  ]);
+  await seedTaxonomy("learningObjective", [
+    { slug: "sustain-attention", nameAr: "الحفاظ على الانتباه لمدة أطول", nameEn: "Sustain attention for longer" }, { slug: "pencil-grip", nameAr: "مسك القلم", nameEn: "Pencil grip" }, { slug: "trace-lines", nameAr: "تتبع الخطوط", nameEn: "Trace lines" }, { slug: "build-vocabulary", nameAr: "تنمية الحصيلة اللغوية", nameEn: "Build vocabulary" }, { slug: "daily-routines", nameAr: "ترتيب خطوات الروتين اليومي", nameEn: "Sequence daily routines" },
+  ]);
+  await seedTaxonomy("productType", [
+    { slug: "book", nameAr: "كتاب", nameEn: "Book" }, { slug: "puzzle", nameAr: "بازل", nameEn: "Puzzle" }, { slug: "educational-game", nameAr: "لعبة تعليمية", nameEn: "Educational game" }, { slug: "learning-tool", nameAr: "أداة تعليمية", nameEn: "Learning tool" }, { slug: "cards", nameAr: "بطاقات", nameEn: "Cards" }, { slug: "bundle", nameAr: "بكج / مجموعة", nameEn: "Bundle" },
+  ]);
+  await seedTaxonomy("useContext", [
+    { slug: "home", nameAr: "المنزل", nameEn: "Home" }, { slug: "nursery", nameAr: "الحضانة", nameEn: "Nursery" }, { slug: "school", nameAr: "المدرسة", nameEn: "School" }, { slug: "speech-center", nameAr: "مركز التخاطب", nameEn: "Speech center" }, { slug: "individual", nameAr: "نشاط فردي", nameEn: "Individual activity" }, { slug: "group", nameAr: "نشاط جماعي", nameEn: "Group activity" },
+  ]);
+  for (const [slug, nameAr, nameEn, minAgeMonths, maxAgeMonths] of [["six-months-two-years", "6 شهور – سنتين", "6 months – 2 years", 6, 24], ["three-six-years", "3 – 6 سنوات", "3 – 6 years", 36, 72], ["six-twelve-years", "6 – 12 سنة", "6 – 12 years", 72, 144]] as const) await prisma.ageGroup.upsert({ where: { slug }, update: { nameAr, nameEn, minAgeMonths, maxAgeMonths, isActive: true }, create: { slug, nameAr, nameEn, minAgeMonths, maxAgeMonths } });
+  const skillFocus = await prisma.skill.findUniqueOrThrow({ where: { slug: "focus" } });
+  const objectiveAttention = await prisma.learningObjective.findUniqueOrThrow({ where: { slug: "sustain-attention" } });
+  const typePuzzle = await prisma.productType.findUniqueOrThrow({ where: { slug: "puzzle" } });
+  const contextHome = await prisma.useContext.findUniqueOrThrow({ where: { slug: "home" } });
+  for (const product of await prisma.product.findMany({ where: { status: "ACTIVE" }, select: { id: true, categoryId: true } })) { if (product.categoryId) await prisma.productCategory.upsert({ where: { productId_categoryId: { productId: product.id, categoryId: product.categoryId } }, update: {}, create: { productId: product.id, categoryId: product.categoryId } }); await prisma.productSkill.upsert({ where: { productId_skillId: { productId: product.id, skillId: skillFocus.id } }, update: {}, create: { productId: product.id, skillId: skillFocus.id } }); await prisma.productLearningObjective.upsert({ where: { productId_learningObjectiveId: { productId: product.id, learningObjectiveId: objectiveAttention.id } }, update: {}, create: { productId: product.id, learningObjectiveId: objectiveAttention.id } }); await prisma.productProductType.upsert({ where: { productId_productTypeId: { productId: product.id, productTypeId: typePuzzle.id } }, update: {}, create: { productId: product.id, productTypeId: typePuzzle.id } }); await prisma.productUseContext.upsert({ where: { productId_useContextId: { productId: product.id, useContextId: contextHome.id } }, update: {}, create: { productId: product.id, useContextId: contextHome.id } }); }
 }
 
 async function main(): Promise<void> {
@@ -276,17 +339,22 @@ async function main(): Promise<void> {
     },
   });
 
-  await prisma.paymentMethod.upsert({
-    where: { code: defaultPaymentMethod.code },
-    update: {
-      name: defaultPaymentMethod.name,
-      type: defaultPaymentMethod.type,
-      isSystem: true,
-      enabled: defaultPaymentMethod.enabled,
-      instructions: defaultPaymentMethod.instructions,
-    },
-    create: defaultPaymentMethod,
-  });
+  for (const method of defaultPaymentMethods) {
+    const record = await prisma.paymentMethod.upsert({
+      where: { code: method.code },
+      update: { name: method.name, type: method.type, isSystem: true, enabled: method.enabled, instructions: method.instructions, providerKey: method.providerKey },
+      create: method,
+    });
+    for (const market of ["SAUDI_ARABIA", "EGYPT"] as const) {
+      await prisma.paymentMethodMarketConfig.upsert({ where: { market_paymentMethodId: { market, paymentMethodId: record.id } }, update: { enabled: method.enabled, sortOrder: method.sortOrder }, create: { market, paymentMethodId: record.id, enabled: method.enabled, sortOrder: method.sortOrder } });
+    }
+  }
+  for (const account of [
+    { market: "SAUDI_ARABIA" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank", accountHolderName: "Maharat Kids Test", iban: "SA0000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
+    { market: "EGYPT" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank Egypt", accountHolderName: "Maharat Kids Test", iban: "EG000000000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
+  ]) {
+    await prisma.bankTransferAccount.upsert({ where: { id: `seed-${account.market.toLowerCase()}` }, update: { ...account, enabled: true, isDefault: true }, create: { id: `seed-${account.market.toLowerCase()}`, ...account, enabled: true, isDefault: true } });
+  }
 
   const adminRole = await prisma.role.findUnique({
     where: { name: "ADMIN" },
@@ -299,13 +367,11 @@ async function main(): Promise<void> {
   const existingAdmin = await prisma.user.findUnique({
     where: { email: seedAdminEmail },
   });
-  const passwordHash = existingAdmin
-    ? existingAdmin.passwordHash
-    : await new ScryptPasswordHasher(process.env.AUTH_SECRET).hash(seedAdminPassword);
+  const passwordHash = await new ScryptPasswordHasher(process.env.AUTH_SECRET).hash(seedAdminPassword);
   const adminUser = existingAdmin
     ? await prisma.user.update({
         where: { id: existingAdmin.id },
-        data: { type: "ADMIN", status: "ACTIVE" },
+        data: { type: "ADMIN", status: "ACTIVE", passwordHash },
       })
     : await prisma.user.create({
         data: {

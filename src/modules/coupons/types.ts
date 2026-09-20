@@ -1,4 +1,4 @@
-import type { CouponRedemptionStatus, CouponType } from "@prisma/client";
+import type { CouponRedemptionStatus, CouponType, Market } from "@prisma/client";
 
 export type { CouponRedemptionStatus, CouponType };
 export type CouponStatus = "INACTIVE" | "SCHEDULED" | "ACTIVE" | "EXPIRED" | "EXHAUSTED";
@@ -12,6 +12,7 @@ export type Coupon = {
   fixedDiscountAmount: string | null;
   minimumOrderSubtotal: string;
   maximumDiscountAmount: string | null;
+  marketRules: Record<Market, { fixedDiscountAmount: string | null; minimumOrderSubtotal: string; maximumDiscountAmount: string | null }>;
   isActive: boolean;
   startsAt: string;
   endsAt: string | null;
@@ -30,7 +31,7 @@ export type CouponRedemption = {
   id: string;
   customerId: string;
   customerName: string | null;
-  customerEmail: string;
+  customerEmail: string | null;
   orderId: string;
   orderNumber: string;
   orderSubtotal: string;
@@ -71,6 +72,7 @@ export type CreateCouponInput = {
   fixedDiscountAmount?: string | number | null;
   minimumOrderSubtotal?: string | number;
   maximumDiscountAmount?: string | number | null;
+  marketRules: Record<Market, { fixedDiscountAmount?: string | number | null; minimumOrderSubtotal?: string | number; maximumDiscountAmount?: string | number | null }>;
   isActive: boolean;
   startsAt: string | Date;
   endsAt?: string | Date | null;

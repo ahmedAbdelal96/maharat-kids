@@ -21,6 +21,7 @@ export type SearchSuggestionCategory = {
 
 export type SearchSuggestions = {
   query: string;
+  currency?: "SAR" | "EGP";
   products: SearchSuggestionProduct[];
   categories: SearchSuggestionCategory[];
 };

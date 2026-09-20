@@ -23,3 +23,8 @@ export async function getShippingCompanies() {
   const actor = await requireAuthenticatedUser();
   return actor.success ? service().getCompanies(actor.data.user.id) : failure(actor.error);
 }
+
+export async function getShippingCarrierConfigurations() {
+  const actor = await requireAuthenticatedUser();
+  return actor.success ? service().getCarrierConfigurations(actor.data.user.id) : failure(actor.error);
+}

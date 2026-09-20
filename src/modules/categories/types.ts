@@ -9,6 +9,7 @@ export type Category = {
   imageMediaId: string | null;
   imageUrl: string | null;
   isActive: boolean;
+  showInNavigation: boolean;
   sortOrder: number;
   productCount: number;
   childCount: number;
@@ -22,6 +23,8 @@ export type CreateCategoryInput = {
   imageMediaId?: string | null;
   isActive?: boolean;
   sortOrder?: number;
+  showInNavigation?: boolean;
+  slug?: string;
 };
 
 export type UpdateCategoryInput = CreateCategoryInput & { id: string };

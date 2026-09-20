@@ -19,7 +19,7 @@ export async function addProductToCart(input: unknown) {
   const context = await resolveShoppingCartContext({ createGuest: true });
   if (!context.success) return failure(context.error);
   if (!context.data) return failure(new ValidationError("The cart could not be created."));
-  const result = await service().addProduct(context.data, parsed.data.productId, parsed.data.quantity);
+  const result = await service().addProduct(context.data, parsed.data.productId, parsed.data.quantity, parsed.data.variantId);
   if (result.success) refresh();
   return result;
 }
@@ -29,7 +29,7 @@ export async function updateCartItemQuantity(input: unknown) {
   if (!parsed.success) return failure(new ValidationError("Please select a valid quantity."));
   const context = await resolveShoppingCartContext();
   if (!context.success) return failure(context.error);
-  if (!context.data) return service().clear({ kind: "guest", guestTokenHash: "missing-cart" });
+  if (!context.data) return failure(new ValidationError("Your cart is empty."));
   const result = await service().updateQuantity(context.data, parsed.data.cartItemId, parsed.data.quantity);
   if (result.success) refresh();
   return result;
@@ -40,7 +40,7 @@ export async function removeCartItem(input: unknown) {
   if (!parsed.success) return failure(new ValidationError("Please select a valid cart item."));
   const context = await resolveShoppingCartContext();
   if (!context.success) return failure(context.error);
-  if (!context.data) return service().clear({ kind: "guest", guestTokenHash: "missing-cart" });
+  if (!context.data) return failure(new ValidationError("Your cart is empty."));
   const result = await service().removeItem(context.data, parsed.data.cartItemId);
   if (result.success) refresh();
   return result;
@@ -49,7 +49,7 @@ export async function removeCartItem(input: unknown) {
 export async function clearCart() {
   const context = await resolveShoppingCartContext();
   if (!context.success) return failure(context.error);
-  if (!context.data) return service().clear({ kind: "guest", guestTokenHash: "missing-cart" });
+  if (!context.data) return failure(new ValidationError("Your cart is empty."));
   const result = await service().clear(context.data);
   if (result.success) refresh();
   return result;
@@ -69,7 +69,7 @@ export async function applyCouponToCart(input: unknown) {
 export async function removeCouponFromCart() {
   const context = await resolveShoppingCartContext();
   if (!context.success) return failure(context.error);
-  if (!context.data) return service().clear({ kind: "guest", guestTokenHash: "missing-cart" });
+  if (!context.data) return failure(new ValidationError("Your cart is empty."));
   const result = await service().removeCoupon(context.data);
   if (result.success) refresh();
   return result;

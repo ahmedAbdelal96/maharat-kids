@@ -2,7 +2,10 @@ import type { DeliveryFailureReason, ShipmentStatus } from "@prisma/client";
 
 export type ShippingCompany = {
   id: string;
+  code: string;
   name: string;
+  nameAr: string | null;
+  nameEn: string | null;
   phone: string | null;
   contactPerson: string | null;
   notes: string | null;
@@ -11,12 +14,15 @@ export type ShippingCompany = {
   updatedAt: string;
 };
 
+export type ShippingMarketConfig = { market: "SAUDI_ARABIA" | "EGYPT"; enabled: boolean; isCheckoutCarrier: boolean; rate: string };
+export type ShippingCarrierConfiguration = ShippingCompany & { markets: ShippingMarketConfig[] };
+
 export type ShipmentSummary = {
   id: string;
   orderId: string;
   orderNumber: string;
   customerName: string | null;
-  customerEmail: string;
+  customerEmail: string | null;
   customerPhone: string | null;
   total: string;
   currency: string;
@@ -37,7 +43,7 @@ export type ShipmentHistoryEntry = {
   newStatus: ShipmentStatus;
   changedByUserId: string;
   changedByName: string | null;
-  changedByEmail: string;
+  changedByEmail: string | null;
   note: string | null;
   createdAt: string;
 };
@@ -71,6 +77,7 @@ export type ShippingOverview = {
     deliveredToday: number;
   };
   companies: ShippingCompanyMetrics[];
+  configurations: ShippingCarrierConfiguration[];
 };
 
 export type CodDueItem = {
@@ -93,7 +100,7 @@ export type SettlementSummary = {
   receivedAt: string;
   note: string | null;
   createdByName: string | null;
-  createdByEmail: string;
+  createdByEmail: string | null;
   orderCount: number;
 };
 

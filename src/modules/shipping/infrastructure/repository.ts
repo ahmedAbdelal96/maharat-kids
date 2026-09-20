@@ -14,6 +14,7 @@ import type {
   ShippingOverview,
   SettlementSummary,
   ShippingCompanyDetailQuery,
+  ShippingCarrierConfiguration,
 } from "../types";
 
 const shipmentInclude = {
@@ -32,8 +33,8 @@ function difference(expected: Prisma.Decimal | number | string, received: Prisma
   return new Prisma.Decimal(received).sub(new Prisma.Decimal(expected)).toFixed(2);
 }
 
-function toCompany(record: { id: string; name: string; phone: string | null; contactPerson: string | null; notes: string | null; isActive: boolean; createdAt: Date; updatedAt: Date }): ShippingCompany {
-  return { ...record, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString() };
+function toCompany(record: { id: string; code: string; name: string; nameAr: string | null; nameEn: string | null; phone: string | null; contactPerson: string | null; notes: string | null; isActive: boolean; createdAt: Date; updatedAt: Date }): ShippingCompany {
+  return { id: record.id, code: record.code, name: record.name, nameAr: record.nameAr, nameEn: record.nameEn, phone: record.phone, contactPerson: record.contactPerson, notes: record.notes, isActive: record.isActive, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString() };
 }
 
 function toHistory(record: ShipmentRecord["statusHistory"][number]): ShipmentHistoryEntry {
@@ -81,8 +82,10 @@ export interface ShippingRepository {
   findCompanyDetail(id: string, query?: ShippingCompanyDetailQuery): Promise<ShippingCompanyDetail | null>;
   findCompanies(): Promise<ShippingCompany[]>;
   findShipmentByOrderId(orderId: string): Promise<ShipmentDetails | null>;
-  createCompany(input: { name: string; phone?: string; contactPerson?: string; notes?: string }): Promise<ShippingCompany>;
-  updateCompany(id: string, input: { name: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }): Promise<ShippingCompany>;
+  createCompany(input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string }): Promise<ShippingCompany>;
+  updateCompany(id: string, input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }): Promise<ShippingCompany>;
+  findCarrierConfigurations(): Promise<ShippingCarrierConfiguration[]>;
+  updateCarrierConfiguration(input: import("../schema").UpdateShippingCarrierConfigurationInput): Promise<ShippingCarrierConfiguration>;
   deleteCompany(id: string): Promise<void>;
   assignShipment(orderId: string, companyId: string, trackingNumber?: string): Promise<ShipmentDetails>;
   transitionShipment(orderId: string, status: ShipmentStatus, actorId: string, failureReason?: DeliveryFailureReason, note?: string): Promise<ShipmentDetails>;
@@ -113,7 +116,26 @@ export class PrismaShippingRepository implements ShippingRepository {
       return { ...toCompany(company), withCarrier: withCarrier + outForDelivery, outForDelivery, delivered, failed, returnsPending, codDue: money(due._sum.amount) } satisfies ShippingCompanyMetrics;
     }));
     const deliveredToday = await this.db.orderShipment.count({ where: { status: "DELIVERED", deliveredAt: { gte: today } } });
-    return { totals: { companies: companies.length, withCarrier: metrics.reduce((sum, item) => sum + item.withCarrier, 0), codDue: metrics.reduce((sum, item) => sum + Number(item.codDue), 0).toFixed(2), returnsPending: metrics.reduce((sum, item) => sum + item.returnsPending, 0), deliveredToday }, companies: metrics } satisfies ShippingOverview;
+    return { totals: { companies: companies.length, withCarrier: metrics.reduce((sum, item) => sum + item.withCarrier, 0), codDue: metrics.reduce((sum, item) => sum + Number(item.codDue), 0).toFixed(2), returnsPending: metrics.reduce((sum, item) => sum + item.returnsPending, 0), deliveredToday }, companies: metrics, configurations: await this.findCarrierConfigurations() } satisfies ShippingOverview;
+  }
+
+  async findCarrierConfigurations() {
+    const records = await this.db.shippingCompany.findMany({ include: { marketConfigs: { orderBy: { market: "asc" } } }, orderBy: [{ isActive: "desc" }, { name: "asc" }] });
+    return records.map((record) => ({ ...toCompany(record), markets: record.marketConfigs.map((config) => ({ market: config.market, enabled: config.enabled, isCheckoutCarrier: config.isCheckoutCarrier, rate: config.rate.toFixed(2) })) })) satisfies ShippingCarrierConfiguration[];
+  }
+
+  async updateCarrierConfiguration(input: import("../schema").UpdateShippingCarrierConfigurationInput) {
+    return this.db.$transaction(async (tx) => {
+      const company = await tx.shippingCompany.update({ where: { id: input.id }, data: { code: input.code, name: input.name, nameAr: input.nameAr || null, nameEn: input.nameEn || null, isActive: input.isActive } });
+      for (const market of ["SAUDI_ARABIA", "EGYPT"] as const) {
+        const config = input.markets[market];
+        if (config.enabled && config.isCheckoutCarrier) await tx.shippingCarrierMarketConfig.updateMany({ where: { market, isCheckoutCarrier: true, NOT: { shippingCompanyId: input.id } }, data: { isCheckoutCarrier: false } });
+        await tx.shippingCarrierMarketConfig.upsert({ where: { shippingCompanyId_market: { shippingCompanyId: input.id, market } }, create: { shippingCompanyId: input.id, market, enabled: config.enabled, isCheckoutCarrier: config.isCheckoutCarrier, rate: new Prisma.Decimal(config.rate) }, update: { enabled: config.enabled, isCheckoutCarrier: config.isCheckoutCarrier, rate: new Prisma.Decimal(config.rate) } });
+      }
+      const full = await tx.shippingCompany.findUnique({ where: { id: company.id }, include: { marketConfigs: { orderBy: { market: "asc" } } } });
+      if (!full) throw new Error("COMPANY_NOT_FOUND");
+      return { ...toCompany(full), markets: full.marketConfigs.map((config) => ({ market: config.market, enabled: config.enabled, isCheckoutCarrier: config.isCheckoutCarrier, rate: config.rate.toFixed(2) })) } satisfies ShippingCarrierConfiguration;
+    });
   }
 
   async findCompanyDetail(id: string, query: ShippingCompanyDetailQuery = {}) {
@@ -146,12 +168,12 @@ export class PrismaShippingRepository implements ShippingRepository {
     return record ? toDetails(record) : null;
   }
 
-  async createCompany(input: { name: string; phone?: string; contactPerson?: string; notes?: string }) {
-    return toCompany(await this.db.shippingCompany.create({ data: { name: input.name, phone: input.phone || null, contactPerson: input.contactPerson || null, notes: input.notes || null } }));
+  async createCompany(input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string }) {
+    return toCompany(await this.db.shippingCompany.create({ data: { code: input.code || undefined, name: input.name, nameAr: input.nameAr || null, nameEn: input.nameEn || null, phone: input.phone || null, contactPerson: input.contactPerson || null, notes: input.notes || null } }));
   }
 
-  async updateCompany(id: string, input: { name: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }) {
-    return toCompany(await this.db.shippingCompany.update({ where: { id }, data: { name: input.name, phone: input.phone || null, contactPerson: input.contactPerson || null, notes: input.notes || null, isActive: input.isActive } }));
+  async updateCompany(id: string, input: { code?: string; name: string; nameAr?: string; nameEn?: string; phone?: string; contactPerson?: string; notes?: string; isActive: boolean }) {
+    return toCompany(await this.db.shippingCompany.update({ where: { id }, data: { code: input.code || undefined, name: input.name, nameAr: input.nameAr || null, nameEn: input.nameEn || null, phone: input.phone || null, contactPerson: input.contactPerson || null, notes: input.notes || null, isActive: input.isActive } }));
   }
 
   async deleteCompany(id: string) {

@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-DNS-Prefetch-Control", value: "on" },
+      // Market is determined by a trusted request header; prevent an intermediary
+      // or browser router cache from reusing one market's rendered currency.
+      { key: "Cache-Control", value: "private, no-store" },
+      { key: "Vary", value: "x-vercel-ip-country" },
     ];
     if (process.env.NODE_ENV === "production") {
       headers.push({ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" });

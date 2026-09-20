@@ -13,6 +13,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  MARKET_TRUSTED_COUNTRY_HEADER: z.string().regex(/^[a-z0-9-]{1,64}$/i).default("x-vercel-ip-country"),
+  MARKET_DEVELOPMENT_FALLBACK: z.enum(["SAUDI_ARABIA", "EGYPT"]).default("SAUDI_ARABIA"),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().max(25 * 1024 * 1024).default(5 * 1024 * 1024),
 });
 
@@ -28,6 +30,8 @@ function readEnv(): AppEnv {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+    MARKET_TRUSTED_COUNTRY_HEADER: process.env.MARKET_TRUSTED_COUNTRY_HEADER,
+    MARKET_DEVELOPMENT_FALLBACK: process.env.MARKET_DEVELOPMENT_FALLBACK,
     UPLOAD_MAX_BYTES: process.env.UPLOAD_MAX_BYTES,
   });
 }

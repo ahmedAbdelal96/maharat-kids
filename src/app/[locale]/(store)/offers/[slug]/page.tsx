@@ -8,12 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Countdown } from "@/components/ecommerce/countdown";
 import { ProductCard } from "@/components/ecommerce/product-card";
 import { getPublicOffer } from "@/modules/promotions/server/queries";
-import { getPublicProducts } from "@/modules/products/server/queries";
+import { getPublicProduct, getPublicProducts } from "@/modules/products/server/queries";
 import { getCurrentCustomerFavoriteIds } from "@/modules/favorites/server/queries";
 import { PROMOTION_TYPE_LABELS, type PromotionType } from "@/modules/promotions/constants";
 import { formatMoney } from "@/lib/formatters";
 import { isLocale, type Locale } from "@/config/locale";
 import { localizedAlternates, localizedUrl } from "@/lib/seo";
+import { resolveMarket } from "@/modules/market/server/resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -84,12 +85,29 @@ export default async function OfferDetailPage({
   }
 
   const offer = offerResult.data;
+  const market = await resolveMarket();
+  const [qualifyingResult, giftResult] = await Promise.all([
+    offer.qualifyingProduct ? getPublicProduct(offer.qualifyingProduct.slug) : Promise.resolve(null),
+    offer.giftProduct ? getPublicProduct(offer.giftProduct.slug) : Promise.resolve(null),
+  ]);
+  const qualifyingProduct = offer.qualifyingProduct
+    ? {
+        ...offer.qualifyingProduct,
+        price: qualifyingResult?.success && qualifyingResult.data ? qualifyingResult.data.price : offer.qualifyingProduct.price,
+      }
+    : null;
+  const giftProduct = offer.giftProduct
+    ? {
+        ...offer.giftProduct,
+        price: giftResult?.success && giftResult.data ? giftResult.data.price : offer.giftProduct.price,
+      }
+    : null;
   const catalogProducts = catalogResult.success ? catalogResult.data.items : [];
 
   const displayImage =
     offer.bannerUrl ||
-    offer.giftProduct?.imageUrl ||
-    offer.qualifyingProduct?.imageUrl ||
+    giftProduct?.imageUrl ||
+    qualifyingProduct?.imageUrl ||
     "/placeholders/hero-placeholder.svg";
 
   return (
@@ -164,7 +182,7 @@ export default async function OfferDetailPage({
       </section>
 
       {/* Merchandising Section */}
-      {offer.type === "BUY_X_GET_Y_FREE" && offer.qualifyingProduct && offer.giftProduct ? (
+      {offer.type === "BUY_X_GET_Y_FREE" && qualifyingProduct && giftProduct ? (
         <section className="space-y-6">
           <div>
             <Badge variant="secondary" size="sm" className="uppercase font-semibold tracking-wider text-[10px]">
@@ -191,21 +209,21 @@ export default async function OfferDetailPage({
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)]">
                     <Image
-                      src={offer.qualifyingProduct.imageUrl || "/placeholders/product-placeholder.svg"}
-                      alt={offer.qualifyingProduct.name}
+                      src={qualifyingProduct.imageUrl || "/placeholders/product-placeholder.svg"}
+                      alt={qualifyingProduct.name}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">
                     <h3 className="text-base font-bold text-[var(--text-primary)]">
-                      {offer.qualifyingProduct.name}
+                      {qualifyingProduct.name}
                     </h3>
                     <p className="text-xl font-black text-[var(--primary)]">
-                      {formatMoney(offer.qualifyingProduct.price, "USD")}
+                      {formatMoney(qualifyingProduct.price, market.configuration.currency)}
                     </p>
                     <div className="pt-2">
-                      <Link href={`/products/${offer.qualifyingProduct.slug}`}>
+                        <Link href={`/products/${qualifyingProduct.slug}`}>
                         <Button size="sm" className="w-full sm:w-auto">
                           View & Add to Cart
                         </Button>
@@ -228,24 +246,24 @@ export default async function OfferDetailPage({
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
                     <Image
-                      src={offer.giftProduct.imageUrl || "/placeholders/product-placeholder.svg"}
-                      alt={offer.giftProduct.name}
+                      src={giftProduct.imageUrl || "/placeholders/product-placeholder.svg"}
+                      alt={giftProduct.name}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">
                     <h3 className="text-base font-bold text-[var(--text-primary)]">
-                      {offer.giftProduct.name}
+                      {giftProduct.name}
                     </h3>
                     <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <span className="text-xl font-black text-[var(--success)]">$0.00 FREE</span>
+                      <span className="text-xl font-black text-[var(--success)]">{formatMoney("0", market.configuration.currency)} FREE</span>
                       <span className="text-xs text-[var(--text-muted)] line-through">
-                        {formatMoney(offer.giftProduct.price, "USD")}
+                      {formatMoney(giftProduct.price, market.configuration.currency)}
                       </span>
                     </div>
                     <p className="text-xs text-[var(--text-muted)]">
-                      Automatically added at $0.00 in your cart when you checkout!
+                      Automatically added at {formatMoney("0", market.configuration.currency)} in your cart when you checkout!
                     </p>
                   </div>
                 </div>

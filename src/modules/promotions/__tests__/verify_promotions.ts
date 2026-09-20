@@ -103,6 +103,7 @@ async function runVerification() {
   // Test 2: Evaluator on subtotal below threshold vs above threshold
   console.log("\n--- Test 2: Evaluate Percentage Promotion Subtotal Guard ---");
   const evalBelow = await evaluatePromotions({
+    market: "SAUDI_ARABIA",
     items: [{ productId: testQualifying.id, unitPrice: 50, quantity: 1 }], // Subtotal = $50 (< $100)
     now: new Date(),
   });
@@ -116,6 +117,7 @@ async function runVerification() {
   console.log("✓ Subtotal below threshold correctly rejected with progress hint.");
 
   const evalAbove = await evaluatePromotions({
+    market: "SAUDI_ARABIA",
     items: [{ productId: testQualifying.id, unitPrice: 50, quantity: 3 }], // Subtotal = $150 (>= $100)
     now: new Date(),
   });
@@ -150,6 +152,7 @@ async function runVerification() {
 
   // Evaluate BOGO: Buy 4 qualifying -> Should yield 2 free gifts
   const evalBogo = await evaluatePromotions({
+    market: "SAUDI_ARABIA",
     items: [{ productId: testQualifying.id, unitPrice: 50, quantity: 4 }],
     now: new Date(),
   });

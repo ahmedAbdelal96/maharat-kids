@@ -73,7 +73,7 @@ export async function createAdminUser(input: unknown) {
   const result = await createDefaultAdminUserService().createAdminUser(actor.data, parsed.data);
 
   if (result.success) {
-    await writeAdminAudit(actor.data, { action: AUDIT_ACTIONS.ADMIN_USER_CREATED, entityType: AUDIT_ENTITY_TYPES.ADMIN_USER, entityId: result.data.id, entityLabel: result.data.email });
+    await writeAdminAudit(actor.data, { action: AUDIT_ACTIONS.ADMIN_USER_CREATED, entityType: AUDIT_ENTITY_TYPES.ADMIN_USER, entityId: result.data.id, entityLabel: result.data.email ?? result.data.name ?? result.data.id });
     revalidatePath("/admin/users");
   }
 
@@ -96,7 +96,7 @@ export async function updateAdminUser(input: unknown) {
   const result = await createDefaultAdminUserService().updateAdminUser(actor.data, parsed.data);
 
   if (result.success) {
-    await writeAdminAudit(actor.data, { action: AUDIT_ACTIONS.ADMIN_USER_UPDATED, entityType: AUDIT_ENTITY_TYPES.ADMIN_USER, entityId: result.data.id, entityLabel: result.data.email });
+    await writeAdminAudit(actor.data, { action: AUDIT_ACTIONS.ADMIN_USER_UPDATED, entityType: AUDIT_ENTITY_TYPES.ADMIN_USER, entityId: result.data.id, entityLabel: result.data.email ?? result.data.name ?? result.data.id });
     revalidatePath("/admin/users");
   }
 

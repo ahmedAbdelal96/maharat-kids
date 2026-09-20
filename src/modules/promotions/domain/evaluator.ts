@@ -8,14 +8,17 @@ import type {
   PromotionRuleSnapshot,
 } from "../types";
 import { isPromotionCurrentlyActive } from "./status";
+import type { Market } from "@prisma/client";
 
 type PrismaClientOrTx = Prisma.TransactionClient | ReturnType<typeof getPrismaClient>;
 
 export async function evaluatePromotions({
+  market,
   items,
   now = new Date(),
   tx,
 }: {
+  market: Market;
   items: EvaluationCartItem[];
   now?: Date;
   tx?: PrismaClientOrTx;
@@ -40,6 +43,7 @@ export async function evaluatePromotions({
       OR: [{ endsAt: null }, { endsAt: { gt: now } }],
     },
     include: {
+      marketRules: { where: { market } },
       qualifyingProduct: {
         select: {
           id: true,
@@ -55,6 +59,7 @@ export async function evaluatePromotions({
             select: { url: true },
             take: 1,
           },
+          marketPrices: { where: { market }, select: { price: true } },
         },
       },
       giftProduct: {
@@ -72,6 +77,7 @@ export async function evaluatePromotions({
             select: { url: true },
             take: 1,
           },
+          marketPrices: { where: { market }, select: { price: true } },
         },
       },
     },
@@ -107,8 +113,11 @@ export async function evaluatePromotions({
   for (const promo of candidateRecords) {
     if (!isPromotionCurrentlyActive(promo, now)) continue;
 
+    const marketRule = promo.marketRules[0];
+    if ((promo.type === "ORDER_PERCENTAGE_DISCOUNT" || promo.type === "ORDER_FIXED_DISCOUNT") && !marketRule) continue;
+
     if (promo.type === "ORDER_PERCENTAGE_DISCOUNT") {
-      const minSpend = promo.minimumOrderSubtotal ? new Prisma.Decimal(promo.minimumOrderSubtotal) : new Prisma.Decimal(0);
+      const minSpend = marketRule?.minimumOrderSubtotal ? new Prisma.Decimal(marketRule.minimumOrderSubtotal) : new Prisma.Decimal(0);
       const percentage = promo.percentageDiscount ? new Prisma.Decimal(promo.percentageDiscount) : new Prisma.Decimal(0);
 
       if (percentage.gt(0)) {
@@ -139,8 +148,8 @@ export async function evaluatePromotions({
         }
       }
     } else if (promo.type === "ORDER_FIXED_DISCOUNT") {
-      const minSpend = promo.minimumOrderSubtotal ? new Prisma.Decimal(promo.minimumOrderSubtotal) : new Prisma.Decimal(0);
-      const fixedAmount = promo.fixedDiscountAmount ? new Prisma.Decimal(promo.fixedDiscountAmount) : new Prisma.Decimal(0);
+      const minSpend = marketRule?.minimumOrderSubtotal ? new Prisma.Decimal(marketRule.minimumOrderSubtotal) : new Prisma.Decimal(0);
+      const fixedAmount = marketRule?.fixedDiscountAmount ? new Prisma.Decimal(marketRule.fixedDiscountAmount) : new Prisma.Decimal(0);
 
       if (fixedAmount.gt(0)) {
         if (subtotal.gte(minSpend)) {
@@ -202,7 +211,9 @@ export async function evaluatePromotions({
           }
 
           if (stockAvailable && totalGiftUnits > 0) {
-            const giftUnitPrice = new Prisma.Decimal(giftProduct.price);
+            const giftPrice = giftProduct.marketPrices[0]?.price;
+            if (!giftPrice) continue;
+            const giftUnitPrice = new Prisma.Decimal(giftPrice);
             const benefit = giftUnitPrice.mul(totalGiftUnits);
 
             const giftLine: GiftLineItem = {

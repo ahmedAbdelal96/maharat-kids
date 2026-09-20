@@ -1,4 +1,4 @@
-import type { PromotionType as PrismaPromotionType } from "@prisma/client";
+import type { PromotionType as PrismaPromotionType, Market } from "@prisma/client";
 
 export type PromotionType = PrismaPromotionType;
 
@@ -37,6 +37,7 @@ export type Promotion = {
   minimumOrderSubtotal: string | null;
   percentageDiscount: string | null;
   fixedDiscountAmount: string | null;
+  marketRules: Record<Market, { minimumOrderSubtotal: string | null; fixedDiscountAmount: string | null }>;
   qualifyingProductId: string | null;
   qualifyingProduct: PromotionProductRef | null;
   buyQuantity: number | null;
@@ -151,6 +152,7 @@ export type CreatePromotionInput = {
   minimumOrderSubtotal?: string | number | null;
   percentageDiscount?: string | number | null;
   fixedDiscountAmount?: string | number | null;
+  marketRules: Record<Market, { minimumOrderSubtotal?: string | number | null; fixedDiscountAmount?: string | number | null }>;
   qualifyingProductId?: string | null;
   buyQuantity?: number | null;
   giftProductId?: string | null;

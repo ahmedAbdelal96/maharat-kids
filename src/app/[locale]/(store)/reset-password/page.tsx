@@ -1,5 +1,5 @@
-import { NewPasswordForm } from "@/modules/auth/components/new-password-form";
+import { notFound } from "next/navigation";
 
 export default function ResetPasswordPage() {
-  return <NewPasswordForm />;
+  notFound();
 }

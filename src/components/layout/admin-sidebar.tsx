@@ -21,9 +21,9 @@ import {
   Star,
   ClipboardList,
 } from "lucide-react";
-import { appConfig } from "@/config/app.config";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export interface AdminSidebarProps {
   isCollapsed: boolean;
@@ -62,6 +62,12 @@ export const ADMIN_SIDEBAR_NAV: AdminNavEntry[] = [
         href: "/admin/categories",
         icon: FolderTree,
         permission: "categories.view",
+      },
+      {
+        name: "Educational Taxonomies",
+        href: "/admin/catalog",
+        icon: FolderTree,
+        permission: "catalog.taxonomy.manage",
       },
       {
         name: "Promotions",
@@ -140,10 +146,23 @@ export const ADMIN_SIDEBAR_NAV: AdminNavEntry[] = [
 ];
 
 const adminLabelKeys: Record<string, string> = {
-  Dashboard: "dashboard", Catalog: "catalog", Products: "products", Categories: "categories",
-  Promotions: "promotions", Coupons: "coupons", Orders: "orders", Payments: "payments",
-  Returns: "returns", Shipping: "shipping", Customers: "customers", Reviews: "reviews",
-  Inventory: "inventory", "Admin Users": "users", Settings: "settings", "Activity Log": "auditLog",
+  Dashboard: "dashboard",
+  Catalog: "catalog",
+  Products: "products",
+  Categories: "categories",
+  "Educational Taxonomies": "educationalTaxonomies",
+  Promotions: "promotions",
+  Coupons: "coupons",
+  Orders: "orders",
+  Payments: "payments",
+  Returns: "returns",
+  Shipping: "shipping",
+  Customers: "customers",
+  Reviews: "reviews",
+  Inventory: "inventory",
+  "Admin Users": "users",
+  Settings: "settings",
+  "Activity Log": "auditLog",
 };
 
 export function AdminSidebar({
@@ -158,7 +177,7 @@ export function AdminSidebar({
   function renderNavItem(item: AdminNavItem) {
     if (item.permission && !permissions.includes(item.permission)) return null;
     const Icon = item.icon;
-    const label = t(adminLabelKeys[item.name] ?? "dashboard");
+    const label = item.name === "Educational Taxonomies" ? "Educational taxonomies" : t(adminLabelKeys[item.name] ?? "dashboard");
     const isActive =
       item.href === "/admin"
         ? pathname === "/admin"
@@ -173,7 +192,7 @@ export function AdminSidebar({
           isActive
             ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs"
             : "text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]",
-          isCollapsed && "justify-center px-0",
+          isCollapsed && "justify-center px-0"
         )}
         title={isCollapsed ? label : undefined}
       >
@@ -188,7 +207,7 @@ export function AdminSidebar({
       className={cn(
         "relative flex flex-col border-e border-[var(--border)] bg-[var(--surface-card)] transition-all duration-300 z-30",
         isCollapsed ? "w-18" : "w-64",
-        className,
+        className
       )}
     >
       {/* Header / Brand */}
@@ -197,16 +216,14 @@ export function AdminSidebar({
           href="/admin"
           className="flex items-center gap-3 overflow-hidden"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-sm">
-            {appConfig.name.charAt(0)}
-          </div>
+          <BrandLockup variant="admin" compact={isCollapsed} />
           {!isCollapsed && (
             <div className="flex flex-col truncate">
               <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
                 {t("console")}
               </span>
-              <span className="text-[11px] text-[var(--text-muted)] mt-1 truncate">
-                {appConfig.name}
+              <span className="text-[11px] text-[var(--brand-green)] mt-1 truncate">
+                مهارة طفل
               </span>
             </div>
           )}
@@ -240,7 +257,7 @@ export function AdminSidebar({
             </div>
           ) : (
             renderNavItem(entry)
-          ),
+          )
         )}
       </nav>
 
@@ -250,7 +267,7 @@ export function AdminSidebar({
           href="/"
           className={cn(
             "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors",
-            isCollapsed && "justify-center px-0",
+            isCollapsed && "justify-center px-0"
           )}
           title={isCollapsed ? t("viewStore") : undefined}
         >

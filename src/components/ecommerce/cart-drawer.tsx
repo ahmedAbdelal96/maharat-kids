@@ -16,7 +16,7 @@ import type { Cart } from "@/modules/cart/types";
 
 type CartMutationResult = { success: boolean; data?: Cart; error?: { message: string } };
 
-export function CartDrawer({ isOpen, onClose, cart: initialCart, currency = "USD" }: { isOpen: boolean; onClose: () => void; cart: Cart | null; currency?: string }) {
+export function CartDrawer({ isOpen, onClose, cart: initialCart, currency = "SAR" }: { isOpen: boolean; onClose: () => void; cart: Cart | null; currency?: string }) {
   const router = useRouter();
   const t = useTranslations("cart");
   const reduceMotion = useReducedMotion();

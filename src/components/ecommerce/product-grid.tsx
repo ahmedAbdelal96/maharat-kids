@@ -18,7 +18,7 @@ export interface ProductGridProps {
 export function ProductGrid({
   products,
   isLoading = false,
-  currency = "USD",
+  currency = "SAR",
   onAddToCart,
   favoriteProductIds = [],
   onFavoriteChange,

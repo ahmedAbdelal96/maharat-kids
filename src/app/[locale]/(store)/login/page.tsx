@@ -1,26 +1,16 @@
-import { env } from "@/config/env";
-import { getPublicStoreSettings } from "@/modules/store/server/queries";
-
-import { CustomerLoginForm } from "@/modules/auth/components/customer-login-form";
+import { CustomerOtpForm } from "@/modules/auth/components/customer-otp-form";
+import { resolveMarket } from "@/modules/market/server/resolver";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ callbackUrl?: string; returnTo?: string; error?: string; reset?: string }>;
+  searchParams?: Promise<{ callbackUrl?: string; returnTo?: string; error?: string; reset?: string; mode?: string }>;
 }) {
-  const settings = await getPublicStoreSettings();
-  const googleAvailable =
-    settings.success &&
-    settings.data.googleEnabled &&
-    Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
   const params = searchParams ? await searchParams : {};
-
-  return (
-    <CustomerLoginForm
-      googleAvailable={googleAvailable}
-      callbackUrl={params.callbackUrl ?? params.returnTo}
-      initialError={params.error}
-      resetComplete={params.reset === "success"}
-    />
-  );
+  if (params.mode === "admin") {
+    const { CustomerLoginForm } = await import("@/modules/auth/components/customer-login-form");
+    return <CustomerLoginForm googleAvailable={false} adminMode callbackUrl={params.callbackUrl ?? params.returnTo} />;
+  }
+  const market = await resolveMarket();
+  return <CustomerOtpForm market={market.market} callbackUrl={params.callbackUrl ?? params.returnTo} />;
 }

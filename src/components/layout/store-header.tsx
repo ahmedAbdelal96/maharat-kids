@@ -20,13 +20,13 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MobileNav } from "./mobile-nav";
 import { CartDrawer } from "@/components/ecommerce/cart-drawer";
 import type { Cart } from "@/modules/cart/types";
-import { appConfig } from "@/config/app.config";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 import type { StorefrontNotificationSummary } from "@/modules/notifications/types";
 import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { useTranslations } from "next-intl";
 import { logout, logoutCurrentUser } from "@/modules/auth/server/actions";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export interface NavLink {
   label: string;
@@ -37,7 +37,7 @@ export interface NavLink {
 export interface HeaderUserSummary {
   id: string;
   name: string | null;
-  email: string;
+  email: string | null;
   type: "CUSTOMER" | "ADMIN";
   isAdmin: boolean;
   sessionId?: string;
@@ -62,10 +62,9 @@ export interface StoreHeaderProps {
 }
 
 export function StoreHeader({
-  storeName = appConfig.name,
   announcement,
   cart = null,
-  currency = "USD",
+  currency = "SAR",
   favoriteCount = null,
   favoritesHref = "/account/favorites",
   notificationSummary = null,
@@ -169,7 +168,7 @@ export function StoreHeader({
           )}
         </div>
         <span className="truncate text-[11px] text-[var(--text-muted)]">
-          {user.email}
+          {user.email ?? ""}
         </span>
       </div>
     </div>
@@ -177,7 +176,7 @@ export function StoreHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md transition-all shadow-xs">
+      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md transition-all shadow-xs">
         {/* Optional Announcement Bar */}
         {announcement && (
           <div className="bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] text-[var(--primary-foreground)] text-xs py-2 px-4 text-center font-medium tracking-wide">
@@ -201,16 +200,8 @@ export function StoreHeader({
           </div>
 
           {/* Logo / Brand Name */}
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-lg sm:text-xl font-extrabold tracking-tight text-[var(--text-primary)] hover:opacity-90 transition-opacity"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-hover)] text-[var(--primary-foreground)] font-black text-base shadow-xs">
-              {storeName.charAt(0)}
-            </div>
-            <span className="bg-gradient-to-r from-[var(--text-primary)] to-[var(--primary)] bg-clip-text text-transparent">
-              {storeName}
-            </span>
+          <Link href="/" className="transition-opacity hover:opacity-85 inline-flex items-center shrink-0" aria-label="Maharat Kids home">
+            <BrandLockup variant="header" priority />
           </Link>
 
           {/* Desktop Navigation Links */}

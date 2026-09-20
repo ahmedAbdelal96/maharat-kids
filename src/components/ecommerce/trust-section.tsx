@@ -1,6 +1,6 @@
 import { Truck, ShieldCheck, RefreshCw, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 
 export interface TrustItem {
   icon: typeof Truck;
@@ -38,12 +38,13 @@ export function TrustSection({
   items?: TrustItem[];
   className?: string;
 }) {
-  const t = useTranslations("storefront");
+  const locale = useLocale();
+  const isArabic = locale === "ar";
   const translatedItems = [
-    { title: t("reliableShipping"), description: t("shippingDescription") },
-    { title: t("secureCheckout"), description: t("checkoutDescription") },
-    { title: t("easyReturns"), description: t("returnsDescription") },
-    { title: t("customerSupport"), description: t("supportDescription") },
+    { title: isArabic ? "توصيل بعناية" : "Careful delivery", description: isArabic ? "خدمة موثوقة من رفوفنا إلى بابك." : "Thoughtful service from our shelves to your door." },
+    { title: isArabic ? "دفع آمن وواضح" : "A safe checkout", description: isArabic ? "طريقة سهلة وآمنة لإتمام طلبك." : "A clear, secure way to complete your order." },
+    { title: isArabic ? "إرجاع بسيط" : "Simple returns", description: isArabic ? "مساعدة مباشرة عندما تتغير الخطط." : "Straightforward help when plans change." },
+    { title: isArabic ? "نحن هنا لمساعدتك" : "Here to help", description: isArabic ? "دعم ودود لكل سؤال." : "Friendly support for every question." },
   ];
   return (
     <div

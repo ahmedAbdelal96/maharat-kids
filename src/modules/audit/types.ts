@@ -14,7 +14,7 @@ export type AuditMetadata = Record<string, AuditValue>;
 export type AuditActor = {
   userId: string | null;
   name: string | null;
-  email: string;
+  email: string | null;
 };
 
 export type AuditRecordInput = {
@@ -38,7 +38,7 @@ export type AuditLogItem = AuditRecordInput & { id: string; createdAt: string };
 export type AuditActorOption = {
   userId: string;
   name: string | null;
-  email: string;
+  email: string | null;
 };
 
 export type AuditLogFilters = {

@@ -11,6 +11,7 @@ import type { UserId } from "@/modules/identity/types";
 
 import { StoreSettingService } from "../domain/service";
 import { PrismaStoreSettingRepository } from "../infrastructure/repository";
+import { resolveMarket } from "@/modules/market/server/resolver";
 
 function createDefaultStoreSettingService(): StoreSettingService {
   return new StoreSettingService(
@@ -33,7 +34,14 @@ export async function getAdminStoreSettings() {
 }
 
 export async function getPublicStoreSettings() {
-  return createDefaultStoreSettingService().getPublicStoreSettings();
+  const result = await createDefaultStoreSettingService().getPublicStoreSettings();
+  if (!result.success) return result;
+  try {
+    const market = await resolveMarket();
+    return { ...result, data: { ...result.data, currency: market.configuration.currency } };
+  } catch {
+    return result;
+  }
 }
 
 export function createStoreQueries(service: StoreSettingService, actorUserId: UserId) {

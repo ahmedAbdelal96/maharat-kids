@@ -18,7 +18,7 @@ export function PriceDisplay({
   price,
   originalPriceInCents,
   originalPrice,
-  currency = "USD",
+  currency = "SAR",
   size = "md",
   className,
 }: PriceDisplayProps) {

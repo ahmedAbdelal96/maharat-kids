@@ -51,7 +51,7 @@ export class AuthService {
     try {
       const user = await this.repository.findUserByEmail(input.email);
 
-      if (!user || !canAuthenticate(user)) {
+      if (!user || !user.passwordHash || !canAuthenticate(user)) {
         return failure(invalidLoginError());
       }
 

@@ -9,6 +9,7 @@ function mapError(error: unknown): AppError {
   if (error instanceof Error && error.message === "CART_ITEM_NOT_FOUND") return new NotFoundError("CART_ITEM", "Cart item does not exist.");
   if (error instanceof Error && error.message === "PRODUCT_UNAVAILABLE") return new AppError("PRODUCT_UNAVAILABLE", "This product is no longer available.");
   if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") return new AppError("INSUFFICIENT_STOCK", "There is not enough stock for this quantity.");
+  if (error instanceof Error && error.message === "VARIANT_REQUIRED") return new ValidationError("Please select a complete product option combination.");
   return new AppError("CART_OPERATION_FAILED", "Cart operation could not be completed.", { cause: error });
 }
 
@@ -19,9 +20,9 @@ export class CartService {
     try { return success(await this.repository.revalidate(context)); } catch (error) { return failure(mapError(error)); }
   }
 
-  async addProduct(context: CartContext, productId: string, quantity: number): Promise<Result<Cart, AppError>> {
+  async addProduct(context: CartContext, productId: string, quantity: number, variantId?: string | null): Promise<Result<Cart, AppError>> {
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) return failure(new ValidationError("Quantity must be between 1 and 99."));
-    try { return success(await this.repository.addProduct(context, productId, quantity)); } catch (error) { return failure(mapError(error)); }
+    try { return success(await this.repository.addProduct(context, productId, quantity, variantId)); } catch (error) { return failure(mapError(error)); }
   }
 
   async revalidate(context: CartContext): Promise<Result<Cart, AppError>> {
@@ -56,7 +57,7 @@ export class CartService {
     try { return success(await this.repository.removeCoupon(context)); } catch (error) { return failure(mapError(error)); }
   }
 
-  async mergeGuestCart(customerId: string, guestTokenHash: string): Promise<Result<CartMergeResult, AppError>> {
-    try { return success(await this.repository.mergeGuestCart(customerId, guestTokenHash)); } catch (error) { return failure(mapError(error)); }
+  async mergeGuestCart(customerId: string, guestTokenHash: string, market: CartContext["market"]): Promise<Result<CartMergeResult, AppError>> {
+    try { return success(await this.repository.mergeGuestCart(customerId, guestTokenHash, market)); } catch (error) { return failure(mapError(error)); }
   }
 }

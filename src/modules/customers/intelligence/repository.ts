@@ -45,27 +45,8 @@ export function money(value: Prisma.Decimal | number | string | null | undefined
   return value === null || value === undefined ? "0.00" : new Prisma.Decimal(value).toFixed(2);
 }
 
-function toAddress(record: {
-  id: string;
-  userId: string;
-  label: string;
-  recipientName: string;
-  phone: string;
-  country: string;
-  governorate: string | null;
-  city: string;
-  area: string | null;
-  street: string;
-  building: string | null;
-  floor: string | null;
-  apartment: string | null;
-  postalCode: string | null;
-  notes: string | null;
-  isDefault: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}): CustomerAddress {
-  return { ...record, userId: record.userId as UserId };
+function toAddress(record: Prisma.CustomerAddressGetPayload<Prisma.CustomerAddressDefaultArgs>): CustomerAddress {
+  return { ...record, latitude: record.latitude?.toString() ?? null, longitude: record.longitude?.toString() ?? null, userId: record.userId as UserId };
 }
 
 export function baseProfile(record: ProfileRecord) {

@@ -45,7 +45,7 @@ export function ResetCodeForm({ email }: { email: string }) {
     setIsResending(true);
     setErrorMessage(null);
     const result = await requestPasswordReset({ email });
-    if (result.success) setMessage(result.data);
+    if (result.success) setMessage("Password recovery is no longer available.");
     else setErrorMessage(validation("invalid"));
     setIsResending(false);
   }

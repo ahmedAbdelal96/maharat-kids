@@ -41,6 +41,9 @@ function mapProductError(error: unknown): AppError {
   if (error instanceof Error && error.message === "COMPARE_PRICE_INVALID") {
     return new AppError("PRODUCT_COMPARE_PRICE_INVALID", "Compare-at price must be greater than price.");
   }
+  if (error instanceof Error && error.message === "AGE_RANGE_INVALID") {
+    return new AppError("PRODUCT_AGE_RANGE_INVALID", "Maximum age must be greater than or equal to minimum age.");
+  }
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2002"
@@ -123,18 +126,15 @@ export class ProductService {
 
   private async prepare(input: CreateProductInput) {
     domainRules.validatePricing(input);
+    if (input.minAgeMonths != null && input.maxAgeMonths != null && input.minAgeMonths > input.maxAgeMonths) throw new Error("AGE_RANGE_INVALID");
     if (
       input.trackInventory &&
       !Number.isInteger(input.stockQuantity ?? 0)
     ) {
       throw new Error("STOCK_INVALID");
     }
-    if (
-      input.categoryId &&
-      !(await this.repository.categoryExists(input.categoryId))
-    ) {
-      throw new NotFoundError("CATEGORY", "Selected category does not exist.");
-    }
+    const categoryIds = [...new Set([...(input.categoryIds ?? []), ...(input.categoryId ? [input.categoryId] : []), ...(input.primaryCategoryId ? [input.primaryCategoryId] : [])])];
+    for (const categoryId of categoryIds) if (!(await this.repository.categoryExists(categoryId))) throw new NotFoundError("CATEGORY", "Selected category does not exist.");
 
     return {
       ...input,
@@ -304,6 +304,7 @@ export class ProductService {
         sku: null,
         price: current.price,
         compareAtPrice: current.compareAtPrice,
+        marketPrices: current.marketPrices,
         status: "DRAFT",
         isFeatured: false,
         categoryId: current.categoryId,

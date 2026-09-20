@@ -8,7 +8,7 @@ import { failure } from "@/core/result";
 import { requireAuthenticatedUser } from "@/modules/auth/server/queries";
 import { AuthorizationService } from "@/modules/identity/domain/services";
 import { PrismaPermissionRepository, PrismaUserRepository } from "@/modules/identity/infrastructure/repository";
-import { assignShipmentSchema, bulkReturnSchema, settlementBatchSchema, shippingCompanySchema, transitionShipmentSchema, updateShippingCompanyInputSchema } from "../schema";
+import { assignShipmentSchema, bulkReturnSchema, settlementBatchSchema, shippingCompanySchema, transitionShipmentSchema, updateShippingCompanyInputSchema, updateShippingCarrierConfigurationSchema } from "../schema";
 import { ShippingService } from "../domain/service";
 import { PrismaShippingRepository } from "../infrastructure/repository";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from "@/modules/audit/constants";
@@ -36,6 +36,16 @@ export async function updateShippingCompany(input: unknown) {
   const { id, ...data } = parsed.data;
   const result = await service().updateCompany(current.data.user.id, id, data);
   if (result.success) { await writeAdminAudit(current.data, { action: AUDIT_ACTIONS.SHIPPING_COMPANY_UPDATED, entityType: AUDIT_ENTITY_TYPES.SHIPPING_COMPANY, entityId: result.data.id, entityLabel: result.data.name, changes: { fields: [{ field: "active", before: !result.data.isActive, after: result.data.isActive }] } }); refresh(); }
+  return result;
+}
+
+export async function updateShippingCarrierConfiguration(input: unknown) {
+  const parsed = updateShippingCarrierConfigurationSchema.safeParse(input);
+  if (!parsed.success) return failure(new ValidationError("Please enter valid carrier and market shipping settings."));
+  const current = await actor();
+  if (!current.success) return failure(current.error);
+  const result = await service().updateCarrierConfiguration(current.data.user.id, parsed.data);
+  if (result.success) { await writeAdminAudit(current.data, { action: AUDIT_ACTIONS.SHIPPING_COMPANY_UPDATED, entityType: AUDIT_ENTITY_TYPES.SHIPPING_COMPANY, entityId: result.data.id, entityLabel: result.data.name, metadata: { markets: result.data.markets } }); refresh(); }
   return result;
 }
 

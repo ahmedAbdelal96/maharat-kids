@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requestPasswordReset } from "../server/actions";
 import { useTranslations } from "next-intl";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -42,6 +43,9 @@ export function ForgotPasswordForm() {
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12 sm:px-6">
       <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="space-y-2 p-0 pb-6 text-center">
+          <div className="mx-auto mb-2 flex items-center justify-center">
+            <BrandLockup variant="auth" priority />
+          </div>
           <CardTitle className="text-2xl font-bold">{t("forgotTitle")}</CardTitle>
           <CardDescription>{t("forgotDescription")}</CardDescription>
         </CardHeader>

@@ -5,7 +5,7 @@
 
 export function formatCurrency(
   amountInCents: number,
-  currency: string = "USD",
+  currency: string = "SAR",
   locale: string = "en-US",
 ): string {
   const amount = amountInCents / 100;
@@ -20,7 +20,7 @@ export function formatCurrency(
 
 export function formatMoney(
   amount: string | number,
-  currency: string = "USD",
+  currency: string = "SAR",
   locale: string = "en-US",
 ): string {
   return new Intl.NumberFormat(locale, {

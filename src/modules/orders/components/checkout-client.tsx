@@ -15,7 +15,7 @@ import { ProductImage } from "@/components/ecommerce/product-image";
 import { formatMoney as formatMoneyBase } from "@/lib/formatters";
 import { localeToIntl } from "@/config/locale";
 import { formatCustomerAddress } from "@/modules/customers/address";
-import { placeOrder } from "../server/actions";
+import { placeOrder, startOnlinePayment } from "../server/actions";
 import type { CheckoutData } from "../types";
 
 export function CheckoutClient({ data }: { data: CheckoutData }) {
@@ -30,20 +30,30 @@ export function CheckoutClient({ data }: { data: CheckoutData }) {
   const [checkoutToken] = useState(() => crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const selectedAddress = data.addresses.find((item) => item.id === addressId);
+  const selectedAddressId = data.addresses.some((address) => address.id === addressId) ? addressId : data.addresses.find((address) => address.isDefault)?.id ?? data.addresses[0]?.id ?? "";
+  const selectedAddress = data.addresses.find((item) => item.id === selectedAddressId);
   const selectedPayment = data.paymentMethods.find((item) => item.id === paymentMethodId);
+  const shippingName = data.shippingQuote ? (locale === "ar" ? data.shippingQuote.carrierNameAr : data.shippingQuote.carrierNameEn) : null;
+  const shippingAmount = data.shippingQuote?.amount ?? "0.00";
+  const checkoutTotal = data.shippingQuote ? (Number(data.cart.subtotal) + Number(shippingAmount)).toFixed(2) : data.cart.subtotal;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
-    const result = await placeOrder({ addressId, paymentMethodId, checkoutToken, paymentReference: selectedPayment?.type === "MANUAL_TRANSFER" ? paymentReference : undefined, paymentNotes: selectedPayment?.type === "MANUAL_TRANSFER" ? paymentNotes : undefined });
-    if (result.success) router.push(`/checkout/success?order=${encodeURIComponent(result.data.orderNumber)}`);
+    const result = await placeOrder({ addressId: selectedAddressId, paymentMethodId, checkoutToken, paymentReference: selectedPayment?.type === "BANK_TRANSFER" || selectedPayment?.type === "MANUAL_TRANSFER" ? paymentReference : undefined, paymentNotes: selectedPayment?.type === "BANK_TRANSFER" || selectedPayment?.type === "MANUAL_TRANSFER" ? paymentNotes : undefined });
+    if (result.success) {
+      if (selectedPayment?.type === "ONLINE_PAYMENT" || selectedPayment?.type === "ONLINE_GATEWAY") {
+        const payment = await startOnlinePayment({ orderId: result.data.id, locale, idempotencyKey: checkoutToken });
+        if (!payment.success) { setError(payment.error.message); setSubmitting(false); return; }
+        window.location.assign(payment.data.checkoutUrl);
+      } else router.push(`/checkout/success?order=${encodeURIComponent(result.data.orderNumber)}`);
+    }
     else { setError(result.error.message); setSubmitting(false); }
   }
 
   if (data.addresses.length === 0) return <Card><CardContent className="py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]"><MapPin className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-bold">Add a delivery address first</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Choose a saved address or add one from your account before placing the order.</p><Link href="/account"><Button className="mt-5">Manage My Addresses</Button></Link></CardContent></Card>;
-  if (data.paymentMethods.length === 0) return <Card><CardContent className="py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-subtle)] text-[var(--warning)]"><CreditCard className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-bold">No payment methods are available</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Please contact the store administrator before continuing.</p></CardContent></Card>;
+  if (data.paymentMethods.length === 0) return <Card><CardContent className="py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-subtle)] text-[var(--warning)]"><CreditCard className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-bold">{locale === "ar" ? "لا توجد وسيلة دفع متاحة حالياً" : "No payment method is currently available"}</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">{locale === "ar" ? "يرجى المحاولة لاحقاً." : "Please try again later."}</p></CardContent></Card>;
 
   return (
     <form onSubmit={submit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -53,11 +63,11 @@ export function CheckoutClient({ data }: { data: CheckoutData }) {
         </motion.div>
 
         <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><MapPin className="h-4 w-4 text-[var(--primary)]" />Shipping Address</CardTitle></CardHeader><CardContent className="space-y-3">{data.addresses.map((item) => <label key={item.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${item.id === addressId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center gap-2"><input type="radio" name="address" checked={item.id === addressId} onChange={() => setAddressId(item.id)} /><span className="font-bold">{item.label}</span>{item.isDefault && <Badge variant="secondary" size="sm">Default</Badge>}</span><span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]"><strong className="text-[var(--text-primary)]">{item.recipientName}</strong> · {item.phone}<br />{formatCustomerAddress(item)}{item.notes && <><br /><span className="font-semibold text-[var(--text-primary)]">Notes:</span> {item.notes}</>}</span></label>)}<Link href="/account" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--primary)]"><ArrowLeft className="h-3 w-3" />Add or edit an address in My Account</Link></CardContent></Card>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><MapPin className="h-4 w-4 text-[var(--primary)]" />Shipping Address <Badge variant="outline" size="sm">{data.market === "SAUDI_ARABIA" ? "Saudi Arabia" : "Egypt"}</Badge></CardTitle></CardHeader><CardContent className="space-y-3">{data.addresses.map((item) => <label key={item.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${item.id === selectedAddressId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center gap-2"><input type="radio" name="address" checked={item.id === selectedAddressId} onChange={() => setAddressId(item.id)} /><span className="font-bold">{item.label}</span>{item.verification === "VERIFIED" && <Badge variant="success" size="sm">Verified</Badge>}{item.isDefault && <Badge variant="secondary" size="sm">Default</Badge>}</span><span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]"><strong className="text-[var(--text-primary)]">{item.recipientName}</strong> · {item.phone}<br />{formatCustomerAddress(item)}{item.notes && <><br /><span className="font-semibold text-[var(--text-primary)]">Notes:</span> {item.notes}</>}</span></label>)}<Link href="/account" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--primary)]"><ArrowLeft className="h-3 w-3" />Add or edit an address in My Account</Link></CardContent></Card>
         </motion.div>
 
         <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-4 w-4 text-[var(--primary)]" />Payment Method</CardTitle></CardHeader><CardContent className="space-y-3">{data.paymentMethods.map((method) => <label key={method.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${method.id === paymentMethodId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center justify-between gap-3"><span className="flex items-center gap-2"><input type="radio" name="payment" checked={method.id === paymentMethodId} onChange={() => setPaymentMethodId(method.id)} /><span className="font-bold">{method.name}</span></span><Badge variant="outline" size="sm">{method.type === "CASH_ON_DELIVERY" ? "Pay on delivery" : "Manual transfer"}</Badge></span>{method.type === "CASH_ON_DELIVERY" ? <span className="mt-2 block text-xs text-[var(--text-secondary)]">Pay when your order arrives.</span> : <span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]">Transfer destination: <strong>{method.destination || "Provided by the store"}</strong>{method.instructions && <><br />{method.instructions}</>}</span>}{method.id === paymentMethodId && method.type === "MANUAL_TRANSFER" && <div className="mt-3 grid gap-3 sm:grid-cols-2"><span className="text-xs font-semibold">Transfer reference<Input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Optional" /></span><span className="text-xs font-semibold">Payment note<Input value={paymentNotes} onChange={(event) => setPaymentNotes(event.target.value)} placeholder="Optional" /></span></div>}</label>)}</CardContent></Card>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-4 w-4 text-[var(--primary)]" />Payment Method</CardTitle></CardHeader><CardContent className="space-y-3">{data.paymentMethods.map((method) => <label key={method.id} className={`block cursor-pointer rounded-[var(--radius-md)] border p-4 transition-colors ${method.id === paymentMethodId ? "border-[var(--primary)] bg-[var(--primary-soft)]/30" : "border-[var(--border)] hover:border-[var(--primary)]/50"}`}><span className="flex items-center justify-between gap-3"><span className="flex items-center gap-2"><input type="radio" name="payment" checked={method.id === paymentMethodId} onChange={() => setPaymentMethodId(method.id)} /><span className="font-bold">{method.name}</span></span><Badge variant="outline" size="sm">{method.type === "CASH_ON_DELIVERY" ? "Pay on delivery" : method.type === "ONLINE_PAYMENT" || method.type === "ONLINE_GATEWAY" ? "Secure online payment" : "Bank transfer"}</Badge></span>{method.type === "CASH_ON_DELIVERY" ? <span className="mt-2 block text-xs text-[var(--text-secondary)]">Pay when your order arrives.</span> : method.type === "ONLINE_PAYMENT" || method.type === "ONLINE_GATEWAY" ? <span className="mt-2 block text-xs text-[var(--text-secondary)]">Secure payment via {method.providerKey ?? "the configured provider"}.</span> : <span className="mt-2 block text-xs leading-5 text-[var(--text-secondary)]">{method.bankAccount ? <><strong>{locale === "ar" ? method.bankAccount.bankNameAr : method.bankAccount.bankNameEn}</strong><br />IBAN: <strong>{method.bankAccount.iban}</strong>{(locale === "ar" ? method.bankAccount.instructionsAr : method.bankAccount.instructionsEn) && <><br />{locale === "ar" ? method.bankAccount.instructionsAr : method.bankAccount.instructionsEn}</>}</> : "Bank transfer details are currently unavailable."}</span>}{method.id === paymentMethodId && (method.type === "BANK_TRANSFER" || method.type === "MANUAL_TRANSFER") && <div className="mt-3 grid gap-3 sm:grid-cols-2"><span className="text-xs font-semibold">Transfer reference<Input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Optional" /></span><span className="text-xs font-semibold">Payment note<Input value={paymentNotes} onChange={(event) => setPaymentNotes(event.target.value)} placeholder="Optional" /></span></div>}</label>)}</CardContent></Card>
         </motion.div>
         {error && <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--destructive-subtle)] px-3 py-2 text-xs text-[var(--destructive)]">{error}</p>}
       </div>
@@ -112,12 +122,12 @@ export function CheckoutClient({ data }: { data: CheckoutData }) {
               <div className="flex justify-between text-xs font-semibold text-[var(--accent)]"><span>{data.cart.coupon.code}</span><span>-{formatMoney(data.cart.couponDiscount, data.currency)}</span></div>
             )}
             <div className="flex justify-between text-xs text-[var(--text-secondary)]">
-              <span>Shipping</span>
-              <span>{formatMoney("0", data.currency)}</span>
+              <span className="flex flex-col"><span>Shipping fee</span>{shippingName && <span className="text-[10px] text-[var(--text-muted)]">{shippingName}</span>}</span>
+              <span>{formatMoney(shippingAmount, data.currency)}</span>
             </div>
             <div className="flex justify-between border-t border-[var(--border)] pt-3 text-base font-extrabold">
               <span>Total</span>
-              <span className="text-[var(--primary)]">{formatMoney(data.cart.subtotal, data.currency)}</span>
+              <span className="text-[var(--primary)]">{formatMoney(checkoutTotal, data.currency)}</span>
             </div>
           </div>
 
