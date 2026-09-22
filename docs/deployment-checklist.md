@@ -2,7 +2,11 @@
 
 - [ ] Set a strong production `AUTH_SECRET` and production `DATABASE_URL` through the secret manager.
 - [ ] Set `NEXT_PUBLIC_APP_URL` to the canonical HTTPS origin; do not include credentials or a trailing private host.
-- [ ] Configure the trusted proxy country header and `MARKET_TRUSTED_PROXY_SECRET`; strip client-supplied copies at the proxy.
+- [ ] Set `MARKET_GEO_PROVIDER=vercel` for direct Vercel deployment, or set
+      `MARKET_GEO_PROVIDER=trusted_proxy` and configure the country header plus
+      `MARKET_TRUSTED_PROXY_SECRET`; strip client-supplied copies at a custom proxy.
+- [ ] For Vercel, set `NEXT_PUBLIC_APP_URL=https://maharat-kids.vercel.app` and confirm the
+      `x-vercel-ip-country` signal is available at runtime.
 - [ ] Configure S3-compatible `PUBLIC_MEDIA` and `PRIVATE_ASSET` buckets, credentials, and `PUBLIC_MEDIA_BASE_URL`.
 - [ ] Configure the selected Saudi SMS OTP, Egypt email OTP, Payzaty, and SPL provider contracts before enabling those flows.
 - [ ] Confirm TLS termination, secure cookies, HSTS, and the standard security headers are active.

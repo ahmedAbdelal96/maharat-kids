@@ -39,6 +39,22 @@ test("production configuration rejects local storage and missing trust boundary"
   assert.match(localStorageOutput, /Production requires STORAGE_PROVIDER=s3|MARKET_TRUSTED_PROXY_SECRET is required/);
 });
 
+test("Vercel geo provider does not require the custom proxy secret", () => {
+  const output = runProduction("import './src/config/env.ts'", {
+    MARKET_GEO_PROVIDER: "vercel",
+    MARKET_TRUSTED_PROXY_SECRET: "",
+  });
+  assert.doesNotMatch(output, /MARKET_TRUSTED_PROXY_SECRET is required/);
+});
+
+test("trusted proxy provider still requires its secret", () => {
+  const output = runProduction("import './src/config/env.ts'", {
+    MARKET_GEO_PROVIDER: "trusted_proxy",
+    MARKET_TRUSTED_PROXY_SECRET: "",
+  });
+  assert.match(output, /MARKET_TRUSTED_PROXY_SECRET is required/);
+});
+
 test("development payment and address providers cannot be selected in production", () => {
   const output = runProduction(
     "import { getPaymentGateway } from './src/modules/payments/providers/gateway.ts'; import { DevelopmentAddressResolutionProvider } from './src/modules/addresses/providers/development-provider.ts'; console.log(String(getPaymentGateway('PAYZATY_TEST'))); try { new DevelopmentAddressResolutionProvider(); } catch (error) { console.log((error as Error).message); }",

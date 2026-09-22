@@ -6,6 +6,7 @@ import { resolveMarketFromSignals } from "../src/modules/market/server/resolver"
 
 const base = {
   developmentMarket: "SAUDI_ARABIA" as const,
+  geoProvider: "trusted_proxy" as const,
   trustedProxySecret: "proxy-secret-that-is-long-enough-123456",
 };
 
@@ -24,6 +25,21 @@ test("development fallback is explicit and never controls production", () => {
   assert.equal(resolveMarketFromSignals({ ...base, nodeEnv: "development", countryCode: null }).market, "SAUDI_ARABIA");
   assert.equal(resolveMarketFromSignals({ ...base, nodeEnv: "development", developmentMarket: "EGYPT", countryCode: null }).market, "EGYPT");
   assert.throws(() => resolveMarketFromSignals({ ...base, nodeEnv: "production", developmentMarket: "EGYPT", countryCode: null, suppliedProxySecret: base.trustedProxySecret }), /MARKET_UNRESOLVED/);
+});
+
+test("Vercel geo resolves Egypt and Saudi without a proxy secret", () => {
+  assert.equal(resolveMarketFromSignals({ ...base, geoProvider: "vercel", nodeEnv: "production", countryCode: "EG", trustedProxySecret: undefined }).market, "EGYPT");
+  assert.equal(resolveMarketFromSignals({ ...base, geoProvider: "vercel", nodeEnv: "production", countryCode: "SA", trustedProxySecret: undefined }).market, "SAUDI_ARABIA");
+});
+
+test("Vercel geo fails closed for missing or unsupported country", () => {
+  assert.throws(() => resolveMarketFromSignals({ ...base, geoProvider: "vercel", nodeEnv: "production", countryCode: null, trustedProxySecret: undefined }), /MARKET_UNRESOLVED/);
+  assert.throws(() => resolveMarketFromSignals({ ...base, geoProvider: "vercel", nodeEnv: "production", countryCode: "US", trustedProxySecret: undefined }), /MARKET_UNRESOLVED/);
+});
+
+test("trusted proxy still requires its configured secret", () => {
+  assert.throws(() => resolveMarketFromSignals({ ...base, geoProvider: "trusted_proxy", nodeEnv: "production", countryCode: "EG", suppliedProxySecret: undefined }), /MARKET_TRUST_UNVERIFIED/);
+  assert.equal(resolveMarketFromSignals({ ...base, geoProvider: "trusted_proxy", nodeEnv: "production", countryCode: "EG", suppliedProxySecret: base.trustedProxySecret }).market, "EGYPT");
 });
 
 test("storefront price components do not carry an independent SAR market default", () => {

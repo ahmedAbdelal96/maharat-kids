@@ -8,8 +8,11 @@ import { getMarketConfiguration, marketFromCountryCode, type Market } from "../d
 
 export type ResolvedMarket = Readonly<{ market: Market; source: "trusted-country-header" | "development-fallback"; configuration: ReturnType<typeof getMarketConfiguration> }>;
 
+export type MarketGeoProvider = "vercel" | "trusted_proxy";
+
 export type MarketSignalInput = Readonly<{
   nodeEnv: "development" | "test" | "production";
+  geoProvider: MarketGeoProvider;
   countryCode: string | null | undefined;
   developmentMarket: Market;
   trustedProxySecret?: string;
@@ -28,7 +31,7 @@ function matchesSecret(expected: string | undefined, supplied: string | undefine
  * acceptance tests so unsupported production traffic cannot acquire a default.
  */
 export function resolveMarketFromSignals(input: MarketSignalInput): { market: Market; source: ResolvedMarket["source"] } {
-  const requiresTrustedProxy = input.nodeEnv === "production" && !input.e2eTestMode;
+  const requiresTrustedProxy = input.nodeEnv === "production" && input.geoProvider === "trusted_proxy" && !input.e2eTestMode;
   if (requiresTrustedProxy && !matchesSecret(input.trustedProxySecret, input.suppliedProxySecret)) {
     throw new Error("MARKET_TRUST_UNVERIFIED");
   }
@@ -59,6 +62,7 @@ export async function resolveMarket(): Promise<ResolvedMarket> {
   try {
     const resolved = resolveMarketFromSignals({
       nodeEnv: env.NODE_ENV,
+      geoProvider: env.MARKET_GEO_PROVIDER,
       countryCode: country,
       developmentMarket: env.MARKET_DEVELOPMENT_FALLBACK,
       trustedProxySecret: env.MARKET_TRUSTED_PROXY_SECRET,

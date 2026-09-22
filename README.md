@@ -56,8 +56,10 @@ A reusable, single-store ecommerce foundation for building independent online st
    npm run dev
    ```
 
-   Production ignores this fallback and requires the trusted infrastructure country header
-   plus proxy trust token.
+   Production ignores this fallback. Direct Vercel deployments use
+   `MARKET_GEO_PROVIDER=vercel` and Vercel's `x-vercel-ip-country`; other deployments use
+   `MARKET_GEO_PROVIDER=trusted_proxy` with the trusted infrastructure country header and proxy
+   trust token.
 
    Open [http://localhost:3000](http://localhost:3000), or the port configured by your local environment.
 

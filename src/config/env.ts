@@ -30,6 +30,7 @@ const envSchema = z.object({
   // placeholder, so validate presence here and let the provider own its URL contract.
   PAYZATY_STATUS_ENDPOINT: z.string().min(1).optional(),
   PAYZATY_SANDBOX: z.enum(["true", "false"]).optional(),
+  MARKET_GEO_PROVIDER: z.enum(["vercel", "trusted_proxy"]).default("trusted_proxy"),
   MARKET_TRUSTED_COUNTRY_HEADER: z.string().regex(/^[a-z0-9-]{1,64}$/i).default("x-vercel-ip-country"),
   MARKET_TRUSTED_PROXY_HEADER: z.string().regex(/^[a-z0-9-]{1,64}$/i).default("x-market-trust-token"),
   MARKET_TRUSTED_PROXY_SECRET: z.string().min(32).optional(),
@@ -68,9 +69,11 @@ const envSchema = z.object({
     ["STORAGE_S3_PRIVATE_BUCKET", value.STORAGE_S3_PRIVATE_BUCKET],
     ["STORAGE_S3_ACCESS_KEY_ID", value.STORAGE_S3_ACCESS_KEY_ID],
     ["STORAGE_S3_SECRET_ACCESS_KEY", value.STORAGE_S3_SECRET_ACCESS_KEY],
-    ["MARKET_TRUSTED_PROXY_SECRET", value.MARKET_TRUSTED_PROXY_SECRET],
   ] as const) {
     if (!configured) context.addIssue({ code: "custom", path: [key], message: `${key} is required in production.` });
+  }
+  if (value.MARKET_GEO_PROVIDER === "trusted_proxy" && !value.MARKET_TRUSTED_PROXY_SECRET) {
+    context.addIssue({ code: "custom", path: ["MARKET_TRUSTED_PROXY_SECRET"], message: "MARKET_TRUSTED_PROXY_SECRET is required in production when MARKET_GEO_PROVIDER=trusted_proxy." });
   }
 });
 
@@ -101,6 +104,7 @@ function readEnv(): AppEnv {
     PAYZATY_BASE_URL: process.env.PAYZATY_BASE_URL,
     PAYZATY_STATUS_ENDPOINT: process.env.PAYZATY_STATUS_ENDPOINT,
     PAYZATY_SANDBOX: process.env.PAYZATY_SANDBOX,
+    MARKET_GEO_PROVIDER: process.env.MARKET_GEO_PROVIDER,
     MARKET_TRUSTED_COUNTRY_HEADER: process.env.MARKET_TRUSTED_COUNTRY_HEADER,
     MARKET_TRUSTED_PROXY_HEADER: process.env.MARKET_TRUSTED_PROXY_HEADER,
     MARKET_TRUSTED_PROXY_SECRET: process.env.MARKET_TRUSTED_PROXY_SECRET,
