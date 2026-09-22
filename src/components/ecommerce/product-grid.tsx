@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export interface ProductGridProps {
   products: Product[];
   isLoading?: boolean;
-  currency?: string;
+  currency: string;
   onAddToCart?: (product: Product, quantity?: number) => void;
   favoriteProductIds?: string[];
   onFavoriteChange?: (product: Product, isFavorite: boolean) => void;
@@ -18,7 +18,7 @@ export interface ProductGridProps {
 export function ProductGrid({
   products,
   isLoading = false,
-  currency = "SAR",
+  currency,
   onAddToCart,
   favoriteProductIds = [],
   onFavoriteChange,
@@ -28,13 +28,13 @@ export function ProductGrid({
   const columnClasses = {
     2: "grid-cols-1 sm:grid-cols-2",
     3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+    4: "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4",
   };
 
   if (isLoading) {
     return (
-      <div className={cn("grid gap-5", columnClasses[columns], className)}>
-        {Array.from({ length: 8 }).map((_, i) => (
+      <div className={cn("grid gap-4 sm:gap-5", columnClasses[columns], className)}>
+        {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
             className="flex flex-col space-y-3 rounded-[var(--radius-lg)] border border-[var(--border)] p-3.5 bg-[var(--surface-card)]"
@@ -56,7 +56,7 @@ export function ProductGrid({
 
   return (
     <StaggerContainer
-      className={cn("grid gap-5", columnClasses[columns], className)}
+      className={cn("grid gap-4 sm:gap-5", columnClasses[columns], className)}
     >
       {products.map((product, index) => (
         <StaggerItem key={product.id}>

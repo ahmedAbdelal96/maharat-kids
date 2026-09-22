@@ -107,8 +107,14 @@ export async function saveProductVariants(input: unknown) {
         if (first) await tx.productVariant.updateMany({ where: { productId: product.id, id: { not: first.id } }, data: { isDefault: false } });
       }
       return tx.product.findUniqueOrThrow({ where: { id: product.id }, include: { options: { include: { values: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }, variants: { include: { optionValues: true, marketPrices: true, images: true }, orderBy: { sortOrder: "asc" } } } });
-    });
-    return success(result);
+    // Acceptance runs use a remote PostgreSQL fixture; keep the transaction
+    // bounded but allow the intentionally large variant matrix to commit
+    // without turning transient database latency into a false UI failure.
+    }, { timeout: 120_000 });
+    // The editor only needs confirmation that the transaction committed. Do not
+    // return the raw Prisma graph here: Decimal instances in the result cannot
+    // cross the Server Action boundary into the Client Component.
+    return success({ id: result.id });
   } catch (error) { return failure(resultError(error)); }
 }
 

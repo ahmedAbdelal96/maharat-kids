@@ -1,0 +1,342 @@
+{
+  "products": [
+    {
+      "slug": "demo-fruits-vegetables-flash-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-001.jpg"
+      ]
+    },
+    {
+      "slug": "demo-animal-flash-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-002.jpg"
+      ]
+    },
+    {
+      "slug": "demo-colors-shapes-flash-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-003.jpg"
+      ]
+    },
+    {
+      "slug": "demo-clothing-vocabulary-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-004.jpg"
+      ]
+    },
+    {
+      "slug": "demo-home-vocabulary-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-005.jpg"
+      ]
+    },
+    {
+      "slug": "demo-feelings-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-006.jpg"
+      ]
+    },
+    {
+      "slug": "demo-speech-starter-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-007.jpg"
+      ]
+    },
+    {
+      "slug": "demo-action-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-008.jpg"
+      ]
+    },
+    {
+      "slug": "demo-community-helpers-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-009.jpg"
+      ]
+    },
+    {
+      "slug": "demo-associations-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-010.jpg"
+      ]
+    },
+    {
+      "slug": "demo-transportation-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-011.jpg"
+      ]
+    },
+    {
+      "slug": "demo-what-question-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-012.jpg"
+      ]
+    },
+    {
+      "slug": "demo-daily-activities-board",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-013.jpg"
+      ]
+    },
+    {
+      "slug": "demo-first-matching-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-014.jpg",
+        "client-015.jpg"
+      ]
+    },
+    {
+      "slug": "demo-where-concept-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-016.jpg",
+        "client-017.jpg"
+      ]
+    },
+    {
+      "slug": "demo-picture-sequencing-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-018.jpg",
+        "client-019.jpg"
+      ]
+    },
+    {
+      "slug": "demo-transportation-sorting-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-020.jpg",
+        "client-021.jpg"
+      ]
+    },
+    {
+      "slug": "demo-animals-habitats",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-022.jpg",
+        "client-023.jpg"
+      ]
+    },
+    {
+      "slug": "demo-shape-shadow-match",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-024.jpg"
+      ]
+    },
+    {
+      "slug": "demo-basic-concepts-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-025.jpg",
+        "client-026.jpg"
+      ]
+    },
+    {
+      "slug": "demo-daily-routine-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-027.jpg",
+        "client-028.jpg"
+      ]
+    },
+    {
+      "slug": "demo-patterns-sorting-puzzle",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-029.jpg",
+        "client-030.jpg"
+      ]
+    },
+    {
+      "slug": "demo-letters-numbers-set",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-031.jpg",
+        "client-032.jpg"
+      ]
+    },
+    {
+      "slug": "demo-sensory-discovery-kit",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-033.jpg",
+        "client-034.jpg"
+      ]
+    },
+    {
+      "slug": "demo-visual-perception-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-035.jpg",
+        "client-036.jpg",
+        "client-037.jpg"
+      ]
+    },
+    {
+      "slug": "demo-home-learning-activities",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-038.jpg",
+        "client-039.jpg",
+        "client-040.jpg"
+      ]
+    },
+    {
+      "slug": "demo-beads-pattern-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-041.jpg",
+        "client-042.jpg"
+      ]
+    },
+    {
+      "slug": "demo-fine-motor-skills-board",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-043.jpg",
+        "client-044.jpg"
+      ]
+    },
+    {
+      "slug": "demo-emotions-expressions-cards",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-045.jpg",
+        "client-046.jpg"
+      ]
+    },
+    {
+      "slug": "demo-educational-memory-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-047.jpg",
+        "client-048.jpg"
+      ]
+    },
+    {
+      "slug": "demo-illustrated-activity-book",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-049.jpg",
+        "client-050.jpg"
+      ]
+    },
+    {
+      "slug": "demo-first-words-activity-kit",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-051.jpg",
+        "client-052.jpg"
+      ]
+    },
+    {
+      "slug": "demo-brain-gym-movement-kit",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-053.jpg",
+        "client-054.jpg"
+      ]
+    },
+    {
+      "slug": "demo-smart-classification-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-055.jpg",
+        "client-056.jpg"
+      ]
+    },
+    {
+      "slug": "demo-multi-piece-wooden-puzzle",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-057.jpg",
+        "client-058.jpg",
+        "client-059.jpg"
+      ]
+    },
+    {
+      "slug": "demo-pre-writing-practice-set",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-060.jpg",
+        "client-061.jpg",
+        "client-062.jpg"
+      ]
+    },
+    {
+      "slug": "demo-perception-matching-book",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-063.jpg",
+        "client-064.jpg"
+      ]
+    },
+    {
+      "slug": "demo-picture-memory-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-065.jpg",
+        "client-066.jpg"
+      ]
+    },
+    {
+      "slug": "demo-little-inspector-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-067.jpg",
+        "client-068.jpg"
+      ]
+    },
+    {
+      "slug": "demo-fast-match-game",
+      "sourceType": "CLIENT_PROVIDED_PDF",
+      "sourceImages": [
+        "client-069.jpg",
+        "client-070.jpg"
+      ]
+    },
+    {
+      "slug": "demo-demo-digital-attention-focus",
+      "sourceType": "ORIGINAL_DIGITAL_PDF_COVER",
+      "sourceImages": [],
+      "publicCover": "digital-covers/attention-focus-01.png",
+      "digitalAsset": "attention-focus-activity-book.pdf"
+    },
+    {
+      "slug": "demo-demo-digital-pre-writing",
+      "sourceType": "ORIGINAL_DIGITAL_PDF_COVER",
+      "sourceImages": [],
+      "publicCover": "digital-covers/pre-writing-01.png",
+      "digitalAsset": "pre-writing-skills-workbook.pdf"
+    },
+    {
+      "slug": "demo-demo-digital-visual-matching",
+      "sourceType": "ORIGINAL_DIGITAL_PDF_COVER",
+      "sourceImages": [],
+      "publicCover": "digital-covers/visual-matching-01.png",
+      "digitalAsset": "visual-perception-matching-workbook.pdf"
+    },
+    {
+      "slug": "demo-demo-digital-basic-concepts",
+      "sourceType": "ORIGINAL_DIGITAL_PDF_COVER",
+      "sourceImages": [],
+      "publicCover": "digital-covers/basic-concepts-01.png",
+      "digitalAsset": "basic-concepts-activity-book.pdf"
+    }
+  ]
+}

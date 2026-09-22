@@ -25,6 +25,7 @@ function operationError(error: unknown) {
     INELIGIBLE_SETTLEMENT_ORDER: "One or more selected orders are no longer eligible for settlement.",
     DUPLICATE_RETURN_ORDER: "A return cannot be selected twice.",
     INELIGIBLE_RETURN_ORDER: "One or more selected returns are no longer eligible.",
+    DIGITAL_ORDER_NO_SHIPMENT: "Digital-only orders do not have a shipment workflow.",
   };
   return new AppError(code, messages[code] ?? "The shipping operation could not be completed.", { cause: error });
 }

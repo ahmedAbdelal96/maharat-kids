@@ -100,6 +100,8 @@ model User {
   addressResolutionSessions AddressResolutionSession[]
   cart                      Cart?
   orders                    Order[]
+  digitalEntitlements       DigitalEntitlement[]
+  digitalDownloadEvents     DigitalDownloadEvent[]
   orderStatusChanges        OrderStatusHistory[]       @relation("OrderStatusHistoryActor")
   paymentStatusChanges      PaymentStatusHistory[]     @relation("PaymentStatusHistoryActor")
   bankTransferReviews       BankTransferSubmission[]   @relation("BankTransferReviewer")
@@ -330,6 +332,7 @@ model Media {
   productImages  ProductImage[] @relation("ProductImageMedia")
   categoryImages Category[]     @relation("CategoryImage")
   promotions     Promotion[]    @relation("PromotionBannerMedia")
+  blogCovers     BlogPost[]     @relation("BlogPostCoverMedia")
 
   @@index([path])
 }
@@ -338,6 +341,27 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+enum ProductFulfillmentType {
+  PHYSICAL
+  DIGITAL
+}
+
+enum DigitalAssetStatus {
+  ACTIVE
+  RETIRED
+  BLOCKED
+}
+
+enum DigitalEntitlementStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
 }
 
 enum ProductLanguage {
@@ -356,25 +380,26 @@ enum DifficultyLevel {
 // A category can contain products, child categories, or both.
 // Uploaded images use imageMediaId; imageUrl remains a legacy fallback.
 model Category {
-  id                 String                @id @default(cuid())
+  id                 String                  @id @default(cuid())
   name               String
-  slug               String                @unique
+  slug               String                  @unique
   parentId           String?
   description        String?
   imageUrl           String?
   imageMediaId       String?
-  isActive           Boolean               @default(true)
-  showInNavigation   Boolean               @default(true)
-  sortOrder          Int                   @default(0)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  parent             Category?             @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children           Category[]            @relation("CategoryTree")
+  isActive           Boolean                 @default(true)
+  showInNavigation   Boolean                 @default(true)
+  sortOrder          Int                     @default(0)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  parent             Category?               @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children           Category[]              @relation("CategoryTree")
   products           Product[]
   productAssignments ProductCategory[]
-  primaryProducts    Product[]             @relation("ProductPrimaryCategory")
-  imageMedia         Media?                @relation("CategoryImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  primaryProducts    Product[]               @relation("ProductPrimaryCategory")
+  imageMedia         Media?                  @relation("CategoryImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
   translations       CategoryTranslation[]
+  blogPosts          BlogPostStoreCategory[]
 
   @@index([parentId])
   @@index([imageMediaId])
@@ -392,6 +417,7 @@ model Product {
   price                  Decimal                    @db.Decimal(12, 2)
   compareAtPrice         Decimal?                   @db.Decimal(12, 2)
   status                 ProductStatus              @default(DRAFT)
+  fulfillmentType        ProductFulfillmentType     @default(PHYSICAL)
   isFeatured             Boolean                    @default(false)
   categoryId             String?
   primaryCategoryId      String?
@@ -427,6 +453,8 @@ model Product {
   marketPrices           ProductMarketPrice[]
   options                ProductOption[]
   variants               ProductVariant[]
+  digitalAssets          DigitalAsset[]
+  blogPosts              BlogPostProduct[]
 
   @@index([status])
   @@index([categoryId])
@@ -434,6 +462,7 @@ model Product {
   @@index([minAgeMonths, maxAgeMonths])
   @@index([productLanguage])
   @@index([isFeatured])
+  @@index([fulfillmentType, status])
 }
 
 model ProductCategory {
@@ -642,6 +671,7 @@ model ProductVariant {
   optionValues   ProductVariantOptionValue[]
   marketPrices   ProductVariantMarketPrice[]
   images         ProductVariantImage[]
+  digitalAssets  DigitalAsset[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
 
@@ -914,6 +944,30 @@ model CartItem {
   @@index([cartId])
 }
 
+model DigitalAsset {
+  id            String                 @id @default(cuid())
+  productId     String
+  variantId     String?
+  displayNameAr String
+  displayNameEn String
+  storageKey    String                 @unique
+  mimeType      String
+  sizeBytes     Int
+  checksum      String
+  version       Int                    @default(1)
+  status        DigitalAssetStatus     @default(ACTIVE)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  product       Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant       ProductVariant?        @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  entitlements  DigitalEntitlement[]
+  downloads     DigitalDownloadEvent[]
+
+  @@index([productId, status])
+  @@index([variantId, status])
+  @@index([checksum])
+}
+
 // ======================================================
 // ORDER MODULE
 // Checkout and customer order history
@@ -1041,6 +1095,7 @@ model Order {
   couponSnapshot        OrderCoupon?
   couponRedemption      CouponRedemption?
   returnRequests        ReturnRequest[]
+  digitalEntitlements   DigitalEntitlement[]
 
   @@index([customerId, createdAt])
   @@index([status])
@@ -1100,7 +1155,7 @@ model PaymentSettlement {
 
 // Stores immutable item snapshots so future catalog changes do not rewrite history.
 model OrderItem {
-  id                         String          @id @default(cuid())
+  id                         String                 @id @default(cuid())
   orderId                    String
   productId                  String
   variantId                  String?
@@ -1108,18 +1163,125 @@ model OrderItem {
   variantOptions             Json?
   name                       String
   imageUrl                   String?
-  unitPrice                  Decimal         @db.Decimal(12, 2)
+  unitPrice                  Decimal                @db.Decimal(12, 2)
   quantity                   Int
-  isPromotionGift            Boolean         @default(false)
+  isPromotionGift            Boolean                @default(false)
   promotionId                String?
-  inventoryTrackedAtPurchase Boolean         @default(false)
-  order                      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventoryTrackedAtPurchase Boolean                @default(false)
+  fulfillmentTypeSnapshot    ProductFulfillmentType @default(PHYSICAL)
+  digitalAssetIdsSnapshot    Json?
+  order                      Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   returnItems                ReturnItem[]
   reviews                    ProductReview[]
-  variant                    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  variant                    ProductVariant?        @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  digitalEntitlements        DigitalEntitlement[]
 
   @@index([orderId])
   @@index([promotionId])
+}
+
+model DigitalEntitlement {
+  id             String                   @id @default(cuid())
+  userId         String
+  orderId        String
+  orderItemId    String
+  digitalAssetId String
+  status         DigitalEntitlementStatus @default(ACTIVE)
+  grantedAt      DateTime                 @default(now())
+  revokedAt      DateTime?
+  reason         String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem      OrderItem                @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  digitalAsset   DigitalAsset             @relation(fields: [digitalAssetId], references: [id], onDelete: Restrict)
+  downloads      DigitalDownloadEvent[]
+
+  @@unique([orderItemId, digitalAssetId])
+  @@index([userId, status, createdAt])
+  @@index([orderId, orderItemId])
+  @@index([digitalAssetId, status])
+}
+
+model DigitalDownloadEvent {
+  id             String             @id @default(cuid())
+  entitlementId  String
+  userId         String
+  digitalAssetId String
+  createdAt      DateTime           @default(now())
+  ipHash         String?
+  userAgentHash  String?
+  entitlement    DigitalEntitlement @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  digitalAsset   DigitalAsset       @relation(fields: [digitalAssetId], references: [id], onDelete: Restrict)
+
+  @@index([entitlementId, createdAt])
+  @@index([userId, createdAt])
+  @@index([digitalAssetId, createdAt])
+}
+
+model BlogCategory {
+  id        String     @id @default(cuid())
+  nameAr    String
+  nameEn    String
+  slug      String     @unique
+  isActive  Boolean    @default(true)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  posts     BlogPost[]
+
+  @@index([isActive, sortOrder])
+}
+
+model BlogPost {
+  id               String                  @id @default(cuid())
+  titleAr          String
+  titleEn          String
+  excerptAr        String?
+  excerptEn        String?
+  contentAr        String
+  contentEn        String
+  slug             String                  @unique
+  status           BlogPostStatus          @default(DRAFT)
+  coverMediaId     String?
+  categoryId       String?
+  seoTitleAr       String?
+  seoTitleEn       String?
+  seoDescriptionAr String?
+  seoDescriptionEn String?
+  publishedAt      DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  coverMedia       Media?                  @relation("BlogPostCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  category         BlogCategory?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  products         BlogPostProduct[]
+  storeCategories  BlogPostStoreCategory[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId, status, publishedAt])
+  @@index([coverMediaId])
+}
+
+model BlogPostProduct {
+  postId    String
+  productId String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([postId, productId])
+  @@index([productId])
+}
+
+model BlogPostStoreCategory {
+  postId     String
+  categoryId String
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@index([categoryId])
 }
 
 // ======================================================

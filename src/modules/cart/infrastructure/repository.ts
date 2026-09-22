@@ -132,6 +132,7 @@ export class PrismaCartRepository implements CartRepository {
     await this.db.$transaction(async (tx) => {
       const product = await tx.product.findUnique({ where: { id: productId }, include: { images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] }, marketPrices: { where: { market: context.market } }, variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } }, marketPrices: { where: { market: context.market } } } } } });
       if (!product || product.status !== "ACTIVE") throw new Error("PRODUCT_UNAVAILABLE");
+      if (product.fulfillmentType === "DIGITAL" && !(await tx.digitalAsset.count({ where: { productId: product.id, status: "ACTIVE", OR: [{ variantId: null }, ...(variantId ? [{ variantId }] : [])] } }))) throw new Error("DIGITAL_ASSET_UNAVAILABLE");
       const variant = variantId ? product.variants.find((candidate) => candidate.id === variantId && candidate.active) : undefined;
       if (product.variants.length > 0 && (!variant || variant.optionValues.some((entry) => !entry.optionValue.isActive || !entry.optionValue.option.isActive))) throw new Error("VARIANT_REQUIRED");
       const cart = await this.ensureRecord(tx, context);

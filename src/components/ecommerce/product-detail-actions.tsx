@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,16 @@ import { getInventoryState } from "@/modules/inventory/domain/inventory";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
 import { PriceDisplay } from "@/components/ecommerce/price-display";
+import { useProductVariantSelection } from "./product-variant-selection";
 
 export interface ProductDetailActionsProps {
   product: Product;
   currency?: "SAR" | "EGP";
   initialFavorite?: boolean;
+  onVariantChange?: (variant: NonNullable<Product["variants"]>[number] | null) => void;
 }
 
-export function ProductDetailActions({ product, currency: currencyProp, initialFavorite = false }: ProductDetailActionsProps) {
+export function ProductDetailActions({ product, currency: currencyProp, initialFavorite = false, onVariantChange }: ProductDetailActionsProps) {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [added, setAdded] = useState(false);
@@ -28,6 +30,7 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
   const t = useTranslations("products");
   const router = useRouter();
   const locale = useLocale();
+  const variantSelection = useProductVariantSelection();
   const activeOptions = (product.options ?? []).filter((option) => option.isActive && option.values.some((value) => value.isActive));
   const variantProducts = (product.variants ?? []).filter((variant) => variant.active && variant.options.every((entry) => product.options?.find((option) => option.id === entry.optionId)?.values.find((value) => value.id === entry.valueId)?.isActive));
   const selectedVariant = variantProducts.find((variant) => activeOptions.length > 0 && activeOptions.every((option) => selection[option.id] && variant.options.some((value) => value.optionId === option.id && value.valueId === selection[option.id])));
@@ -40,6 +43,12 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
   const outOfStock = product.variants?.length ? purchasableVariants.length === 0 : getInventoryState(product) === "OUT_OF_STOCK";
   function isValueAvailable(optionId: string, valueId: string) { return variantProducts.some((variant) => (!variant.trackInventory || variant.stockQuantity > 0) && variant.options.some((entry) => entry.optionId === optionId && entry.valueId === valueId) && activeOptions.every((option) => option.id === optionId || !selection[option.id] || variant.options.some((entry) => entry.optionId === option.id && entry.valueId === selection[option.id]))); }
   const selectedVariantAvailable = Boolean(selectedVariant && (!selectedVariant.trackInventory || selectedVariant.stockQuantity > 0));
+  const digitalUnavailable = product.fulfillmentType === "DIGITAL" && !(product.digitalAssets?.some((asset) => asset.status === "ACTIVE" && (!selectedVariant || asset.variantId === null || asset.variantId === selectedVariant.id)) ?? false);
+  useEffect(() => {
+    const nextVariant = selectedVariant ?? null;
+    onVariantChange?.(nextVariant);
+    variantSelection?.setSelectedVariant(nextVariant);
+  }, [onVariantChange, selectedVariant, variantSelection]);
   async function add() { setBusy(true); setError(""); setAdded(false); if (!complete || (product.variants?.length && (!selectedVariant || !selectedVariantAvailable))) { setError(locale === "ar" ? "هذا الاختيار غير متوفر حالياً." : "This combination is currently unavailable."); setBusy(false); return; } const result = await addProductToCart({ productId: product.id, variantId: selectedVariant?.id ?? null, quantity }); if (!result.success) setError(result.error.message); else { setAdded(true); router.refresh(); } setBusy(false); }
 
   return (
@@ -74,12 +83,12 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
         <Button
           variant="primary"
           size="lg"
-          disabled={outOfStock || busy || !complete || Boolean(product.variants?.length && (!selectedVariant || !selectedVariantAvailable))}
+          disabled={outOfStock || digitalUnavailable || busy || !complete || Boolean(product.variants?.length && (!selectedVariant || !selectedVariantAvailable))}
           onClick={() => void add()}
           className="flex-1 gap-2 h-11 shadow-sm active:scale-[0.98]"
         >
           <ShoppingBag className="h-4 w-4" />
-          <span>{outOfStock ? t("outOfStockAction") : t("addToCartAction")}</span>
+          <span>{outOfStock || digitalUnavailable ? t("outOfStockAction") : t("addToCartAction")}</span>
         </Button>
 
         <FavoriteButton productId={product.id} productName={product.name} isFavorite={isFavorite} isAvailable={product.status === "ACTIVE"} mode="button" onChange={setIsFavorite} className="h-11 w-full shrink-0 sm:w-auto" />

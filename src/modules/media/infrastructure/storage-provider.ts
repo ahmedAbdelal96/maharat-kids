@@ -1,9 +1,9 @@
 import "server-only";
 
-import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { dirname, join } from "node:path";
 import { allowedMediaTypes, type MediaKind } from "../constants";
+import { publicObjectStorage } from "@/modules/storage/provider";
+import type { ObjectStorage } from "@/modules/storage/types";
 
 export type StoredMedia = {
   path: string;
@@ -21,32 +21,26 @@ export interface MediaStorageProvider {
   getUrl(path: string): string;
 }
 
-export class LocalStorageProvider implements MediaStorageProvider {
-  private readonly publicRoot = join(process.cwd(), "public");
+export class ObjectMediaStorageProvider implements MediaStorageProvider {
+  constructor(private readonly storage: ObjectStorage = publicObjectStorage) {}
 
-  async upload(input: {
-    bytes: Uint8Array;
-    mimeType: keyof typeof allowedMediaTypes;
-    kind: MediaKind;
-  }): Promise<StoredMedia> {
+  async upload(input: { bytes: Uint8Array; mimeType: keyof typeof allowedMediaTypes; kind: MediaKind }): Promise<StoredMedia> {
     const filename = `${input.kind}-${randomUUID()}${allowedMediaTypes[input.mimeType]}`;
-    const path = `uploads/${input.kind}/${filename}`;
-    const absolutePath = join(this.publicRoot, ...path.split("/"));
-
-    await mkdir(dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, input.bytes);
-
+    const path = `${input.kind}/${filename}`;
+    await this.storage.put({ key: path, bytes: input.bytes, mimeType: input.mimeType });
     return { path, filename, url: this.getUrl(path) };
   }
 
   async delete(path: string): Promise<void> {
-    if (!path.startsWith("uploads/") || path.includes("..")) return;
-    await unlink(join(this.publicRoot, ...path.split("/"))).catch((error: unknown) => {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    });
+    const key = path.startsWith("uploads/") ? path.slice("uploads/".length) : path;
+    await this.storage.delete(key);
   }
 
   getUrl(path: string): string {
-    return `/${path}`;
+    return this.storage.publicUrl?.(path) ?? `/uploads/${path}`;
   }
 }
+
+// Existing imports remain source-compatible while using the consolidated
+// PUBLIC_MEDIA policy underneath.
+export class LocalStorageProvider extends ObjectMediaStorageProvider {}

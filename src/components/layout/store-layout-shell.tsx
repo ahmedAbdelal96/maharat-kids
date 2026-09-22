@@ -12,14 +12,14 @@ export interface StoreLayoutShellProps {
   children: ReactNode;
   storeName?: string;
   storeDescription?: string;
-  currency?: string;
+  currency: string;
 }
 
 export async function StoreLayoutShell({
   children,
   storeName = appConfig.name,
   storeDescription = appConfig.description,
-  currency = "SAR",
+  currency,
 }: StoreLayoutShellProps) {
   const storefront = await getTranslations("storefront");
   const [cart, favorites, notifications, currentUserResult] = await Promise.all([

@@ -170,7 +170,8 @@ export class ProductService {
       const slug = await generateUniqueSlug(prepared.name, (candidate) =>
         this.repository.slugExists(candidate),
       );
-      return success(await this.repository.create({ ...prepared, slug }));
+      const created = await this.repository.create({ ...prepared, slug });
+      return success(input.fulfillmentType ? await this.repository.setFulfillmentType(created.id as ProductId, input.fulfillmentType) : created);
     } catch (error) {
       return failure(mapProductError(error));
     }
@@ -208,11 +209,14 @@ export class ProductService {
         );
         if (!mediaAllowed.success) return failure(mediaAllowed.error);
       }
-      const updated = await this.repository.update({
+      let updated = await this.repository.update({
           ...prepared,
           id: input.id,
           slug: current.slug,
         });
+      if (input.fulfillmentType && input.fulfillmentType !== updated.fulfillmentType) {
+        updated = await this.repository.setFulfillmentType(input.id as ProductId, input.fulfillmentType);
+      }
       if (removedMediaIds.length > 0) {
         await this.media?.cleanupUnused(removedMediaIds);
       }

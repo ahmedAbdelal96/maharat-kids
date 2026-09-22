@@ -8,7 +8,7 @@ export interface PriceDisplayProps {
   price?: string;
   originalPriceInCents?: number;
   originalPrice?: string | null;
-  currency?: string;
+  currency: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
@@ -18,7 +18,7 @@ export function PriceDisplay({
   price,
   originalPriceInCents,
   originalPrice,
-  currency = "SAR",
+  currency,
   size = "md",
   className,
 }: PriceDisplayProps) {
@@ -29,7 +29,6 @@ export function PriceDisplay({
   const currentNumber = Number(current);
   const originalNumber = original === null ? null : Number(original);
   const hasDiscount = originalNumber !== null && originalNumber > currentNumber;
-  const discountPercent = hasDiscount ? Math.round(((originalNumber - currentNumber) / originalNumber) * 100) : 0;
 
   const sizeClasses = {
     sm: "text-xs",
@@ -39,7 +38,7 @@ export function PriceDisplay({
   };
 
   return (
-    <div className={cn("inline-flex items-baseline gap-2", className)}>
+    <div className={cn("flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0", className)}>
       <span
         className={cn(
           "font-bold tracking-tight text-[var(--text-primary)]",
@@ -50,14 +49,9 @@ export function PriceDisplay({
       </span>
 
       {hasDiscount && (
-        <>
-          <span className="text-xs sm:text-sm text-[var(--text-muted)] line-through">
-            {formatCurrency(originalNumber * 100, currency, numberLocale)}
-          </span>
-          <span className="rounded-[var(--radius-sm)] bg-[var(--destructive-subtle)] px-1.5 py-0.5 text-[10px] sm:text-xs font-bold text-[var(--destructive)]">
-            -{discountPercent}%
-          </span>
-        </>
+        <span className="text-[10px] sm:text-xs text-[var(--text-muted)] line-through">
+          {formatCurrency(originalNumber * 100, currency, numberLocale)}
+        </span>
       )}
     </div>
   );

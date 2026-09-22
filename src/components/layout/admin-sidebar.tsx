@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Star,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
@@ -81,6 +82,13 @@ export const ADMIN_SIDEBAR_NAV: AdminNavEntry[] = [
         icon: Tag,
         permission: "coupons.view",
       },
+    ],
+  },
+  {
+    name: "Content",
+    items: [
+      { name: "Blog", href: "/admin/blog", icon: BookOpen, permission: "blog.view" },
+      { name: "Blog Categories", href: "/admin/blog/categories", icon: FolderTree, permission: "blog.categories" },
     ],
   },
   {
@@ -163,6 +171,8 @@ const adminLabelKeys: Record<string, string> = {
   "Admin Users": "users",
   Settings: "settings",
   "Activity Log": "auditLog",
+  Blog: "blog",
+  "Blog Categories": "blogCategories",
 };
 
 export function AdminSidebar({
@@ -177,7 +187,7 @@ export function AdminSidebar({
   function renderNavItem(item: AdminNavItem) {
     if (item.permission && !permissions.includes(item.permission)) return null;
     const Icon = item.icon;
-    const label = item.name === "Educational Taxonomies" ? "Educational taxonomies" : t(adminLabelKeys[item.name] ?? "dashboard");
+    const label = item.name === "Educational Taxonomies" ? "Educational taxonomies" : item.name === "Blog" ? "Blog" : item.name === "Blog Categories" ? "Blog categories" : t(adminLabelKeys[item.name] ?? "dashboard");
     const isActive =
       item.href === "/admin"
         ? pathname === "/admin"
@@ -250,7 +260,7 @@ export function AdminSidebar({
             <div key={entry.name} className="space-y-1.5 pt-2 first:pt-0">
               {!isCollapsed && (
                 <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  {t(adminLabelKeys[entry.name] ?? "catalog")}
+                  {entry.name === "Content" ? "Content" : t(adminLabelKeys[entry.name] ?? "catalog")}
                 </p>
               )}
               <div className="space-y-1.5">{entry.items.map(renderNavItem)}</div>

@@ -25,6 +25,13 @@ test("arbitrary option dimensions generate bounded, unique combinations", () => 
   assert.equal(combinationKey([{ optionId: "color", optionValueId: "blue" }, { optionId: "size", optionValueId: "small" }]), "color:blue|size:small");
 });
 
+test("variant generation rejects unsafe matrices and keeps simple products compatible", () => {
+  assert.deepEqual(generateCombinations([{ id: "size", values: [] }]), []);
+  assert.throws(() => generateCombinations([{ id: "size", values: Array.from({ length: 25 }, (_, index) => ({ id: `s${index}` })) }, { id: "color", values: Array.from({ length: 21 }, (_, index) => ({ id: `c${index}` })) }]), /VARIANT_COMBINATION_LIMIT/);
+  assert.equal(variantIsPurchasable({ active: true, trackInventory: false, stockQuantity: 0 }), true);
+  assert.equal(effectiveVariantPrice({ productPrice: new Prisma.Decimal("79"), productCompareAtPrice: new Prisma.Decimal("99") }, "SAUDI_ARABIA").compareAtPrice?.toFixed(2), "99.00");
+});
+
 test("variant rows preserve option/value labels, independent market prices, and inheritance", async () => {
   const product = await db.product.create({ data: { name: `MK06 ${suffix}`, slug: `mk06-${suffix}`, sku: `MK06-${suffix}`, price: "79", status: "ACTIVE", marketPrices: { create: [{ market: "SAUDI_ARABIA", price: "79" }, { market: "EGYPT", price: "850" }] } } }); productId = product.id;
   const size = await db.productOption.create({ data: { productId, nameAr: "الحجم", nameEn: "Size", values: { create: [{ labelAr: "صغير", labelEn: "Small", sortOrder: 0 }, { labelAr: "كبير", labelEn: "Large", sortOrder: 1 }] } } });

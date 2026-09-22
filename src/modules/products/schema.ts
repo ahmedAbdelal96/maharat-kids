@@ -13,6 +13,7 @@ export const createProductSchema = z.object({
   compareAtPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, "Compare-at price must be a valid amount.").nullable().optional(),
   marketPrices: z.object({ saudiPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/), saudiCompareAtPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(), egyptPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/), egyptCompareAtPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/).nullable().optional() }),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  fulfillmentType: z.enum(["PHYSICAL", "DIGITAL"]).optional(),
   isFeatured: z.boolean().optional(),
   categoryId: z.string().trim().min(1).nullable().optional(),
   categoryIds: z.array(z.string().trim().min(1)).optional(),

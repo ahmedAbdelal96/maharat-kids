@@ -46,6 +46,19 @@ A reusable, single-store ecommerce foundation for building independent online st
    npm run dev
    ```
 
+   Localhost has no authoritative GeoIP signal, so choose the explicit development-only
+   fallback when testing both markets:
+
+   ```powershell
+   $env:MARKET_DEVELOPMENT_FALLBACK = "EGYPT"       # EGP
+   npm run dev
+   $env:MARKET_DEVELOPMENT_FALLBACK = "SAUDI_ARABIA" # SAR
+   npm run dev
+   ```
+
+   Production ignores this fallback and requires the trusted infrastructure country header
+   plus proxy trust token.
+
    Open [http://localhost:3000](http://localhost:3000), or the port configured by your local environment.
 
 ## Useful commands

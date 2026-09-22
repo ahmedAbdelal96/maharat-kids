@@ -135,7 +135,7 @@ export class PrismaShippingRepository implements ShippingRepository {
       const full = await tx.shippingCompany.findUnique({ where: { id: company.id }, include: { marketConfigs: { orderBy: { market: "asc" } } } });
       if (!full) throw new Error("COMPANY_NOT_FOUND");
       return { ...toCompany(full), markets: full.marketConfigs.map((config) => ({ market: config.market, enabled: config.enabled, isCheckoutCarrier: config.isCheckoutCarrier, rate: config.rate.toFixed(2) })) } satisfies ShippingCarrierConfiguration;
-    });
+    }, { timeout: 30_000 });
   }
 
   async findCompanyDetail(id: string, query: ShippingCompanyDetailQuery = {}) {
@@ -185,11 +185,12 @@ export class PrismaShippingRepository implements ShippingRepository {
   async assignShipment(orderId: string, companyId: string, trackingNumber?: string) {
     const record = await this.db.$transaction(async (tx) => {
       const [order, company, existing] = await Promise.all([
-        tx.order.findUnique({ where: { id: orderId }, select: { id: true, status: true } }),
+        tx.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, items: { select: { fulfillmentTypeSnapshot: true } } } }),
         tx.shippingCompany.findUnique({ where: { id: companyId } }),
         tx.orderShipment.findUnique({ where: { orderId }, select: { id: true, shippingCompanyId: true, status: true } }),
       ]);
       if (!order) throw new Error("ORDER_NOT_FOUND");
+      if (order.items.length > 0 && order.items.every((item) => item.fulfillmentTypeSnapshot === "DIGITAL")) throw new Error("DIGITAL_ORDER_NO_SHIPMENT");
       if (!company) throw new Error("COMPANY_NOT_FOUND");
       if (!company.isActive) throw new Error("COMPANY_INACTIVE");
       if (existing && existing.status !== "NOT_ASSIGNED" && existing.status !== "READY_FOR_SHIPPING" && existing.shippingCompanyId !== companyId) throw new Error("SHIPMENT_ALREADY_HANDED_OVER");
@@ -208,6 +209,7 @@ export class PrismaShippingRepository implements ShippingRepository {
   private async transitionInTransaction(tx: Prisma.TransactionClient, orderId: string, status: ShipmentStatus, actorId: string, failureReason?: DeliveryFailureReason, note?: string) {
     const current = await tx.orderShipment.findUnique({ where: { orderId }, include: { order: { include: { items: true, paymentMethod: true } }, shippingCompany: true } });
     if (!current) throw new Error("SHIPMENT_NOT_FOUND");
+    if (current.order.items.length > 0 && current.order.items.every((item) => item.fulfillmentTypeSnapshot === "DIGITAL")) throw new Error("DIGITAL_ORDER_NO_SHIPMENT");
     if (current.status === status) return tx.orderShipment.findUniqueOrThrow({ where: { id: current.id }, include: shipmentInclude });
     const allowed: Record<ShipmentStatus, readonly ShipmentStatus[]> = { NOT_ASSIGNED: ["READY_FOR_SHIPPING"], READY_FOR_SHIPPING: ["WITH_CARRIER"], WITH_CARRIER: ["OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED"], OUT_FOR_DELIVERY: ["DELIVERED", "DELIVERY_FAILED"], DELIVERED: [], DELIVERY_FAILED: ["RETURNING"], RETURNING: ["RETURNED_TO_STORE"], RETURNED_TO_STORE: [] };
     if (!allowed[current.status].includes(status)) throw new Error("INVALID_SHIPMENT_TRANSITION");

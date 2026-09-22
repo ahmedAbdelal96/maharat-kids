@@ -54,7 +54,7 @@ export interface StoreHeaderProps {
   storeName?: string;
   announcement?: string;
   cart?: Cart | null;
-  currency?: string;
+  currency: string;
   favoriteCount?: number | null;
   favoritesHref?: string | null;
   notificationSummary?: StorefrontNotificationSummary | null;
@@ -64,7 +64,7 @@ export interface StoreHeaderProps {
 export function StoreHeader({
   announcement,
   cart = null,
-  currency = "SAR",
+  currency,
   favoriteCount = null,
   favoritesHref = "/account/favorites",
   notificationSummary = null,
@@ -174,18 +174,20 @@ export function StoreHeader({
     </div>
   ) : null;
 
+  const topAnnouncement = announcement || (t("home") === "الرئيسية" ? "نتعلم • نلعب • نتطور | متجر مهارات طفل لألعاب وكتب تنمية مهارات الأطفال" : "Learn • Play • Grow | Maharat Kids Educational Bookstore & Learning Toys");
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md transition-all shadow-xs">
-        {/* Optional Announcement Bar */}
-        {announcement && (
-          <div className="bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] text-[var(--primary-foreground)] text-xs py-2 px-4 text-center font-medium tracking-wide">
-            {announcement}
-          </div>
-        )}
+        {/* Top Brand & Announcement Bar */}
+        <div className="bg-gradient-to-r from-[var(--primary)] via-[#196b8c] to-[var(--primary)] text-[var(--primary-foreground)] text-xs py-1.5 px-4 text-center font-medium tracking-wide flex items-center justify-center gap-2">
+          <span className="font-bold text-[var(--accent)]">✦</span>
+          <span>{topAnnouncement}</span>
+          <span className="font-bold text-[var(--accent)]">✦</span>
+        </div>
 
         {/* Main Navbar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 lg:hidden">
             <Button
@@ -205,7 +207,7 @@ export function StoreHeader({
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 bg-[var(--surface-muted)]/60 p-1.5 rounded-full border border-[var(--border)]">
+          <nav className="hidden lg:flex items-center gap-1 bg-[var(--surface-muted)]/80 p-1.5 rounded-full border border-[var(--border)] shadow-xs">
             {STORE_NAV_LINKS.map((link) => {
               const isActive =
                 link.href === "/"
@@ -219,7 +221,7 @@ export function StoreHeader({
                     "text-xs font-semibold px-4 py-1.5 rounded-full transition-all duration-200",
                     isActive
                       ? "bg-[var(--surface)] text-[var(--primary)] shadow-xs"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]/60",
                   )}
                 >
                   {link.translationKey ? t(link.translationKey) : link.label}
@@ -229,7 +231,7 @@ export function StoreHeader({
           </nav>
 
           {/* Search Bar (Desktop) */}
-          <div className="hidden md:flex flex-1 max-w-xs mx-4">
+          <div className="hidden md:flex flex-1 max-w-xs mx-3">
             <SearchBar placeholder={common("searchCatalog")} suggestions />
           </div>
 
@@ -244,7 +246,7 @@ export function StoreHeader({
                 trigger={
                   <button
                     type="button"
-                    className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)]/50 py-1 pe-2.5 ps-1 hover:bg-[var(--surface-muted)] hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                    className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-muted)]/50 py-1 pe-2.5 ps-1 hover:bg-[var(--surface-muted)] hover:border-[var(--primary)]/30 transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                     aria-label={common("userAccount")}
                   >
                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-hover)] text-[var(--primary-foreground)] text-xs font-bold shadow-xs">
@@ -266,7 +268,7 @@ export function StoreHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3.5 gap-2 rounded-full border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)] hover:border-[var(--border-strong)] transition-all font-medium text-xs shadow-xs"
+                  className="h-9 px-3.5 gap-2 rounded-full border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)] hover:border-[var(--primary)]/40 transition-all font-semibold text-xs shadow-xs"
                 >
                   <LogIn className="h-3.5 w-3.5 text-[var(--primary)] shrink-0" />
                   <span>{t("signIn")}</span>
@@ -284,11 +286,11 @@ export function StoreHeader({
                       ? common("favorites")
                       : `${common("favorites")} (${favoriteCount})`
                   }
-                  className="h-9 w-9 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="relative h-9 w-9 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   <Heart className="h-4 w-4" />
                   {favoriteCount !== null && favoriteCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">
+                    <span className="absolute -top-1 -end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">
                       {favoriteCount}
                     </span>
                   )}
@@ -308,11 +310,11 @@ export function StoreHeader({
               variant="primary"
               size="sm"
               onClick={() => setIsCartOpen(true)}
-              className="relative h-9 px-3.5 gap-2 shadow-xs cursor-pointer"
+              className="relative h-9 px-3.5 gap-2 shadow-xs cursor-pointer rounded-full"
               aria-label={common("openCart", { count: totalCartCount })}
             >
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs font-semibold">
+              <span className="hidden sm:inline text-xs font-bold">
                 {t("cart")}
               </span>
               {totalCartCount > 0 && (

@@ -16,6 +16,7 @@ export type Product = {
   compareAtPrice: string | null;
   marketPrices: { saudiPrice: string; saudiCompareAtPrice: string | null; egyptPrice: string; egyptCompareAtPrice: string | null };
   status: ProductStatus;
+  fulfillmentType: "PHYSICAL" | "DIGITAL";
   isFeatured: boolean;
   categoryId: string | null;
   primaryCategoryId: string | null;
@@ -46,7 +47,10 @@ export type Product = {
   ratingSummary?: ProductRatingSummary;
   options?: ProductOption[];
   variants?: ProductVariant[];
+  digitalAssets?: DigitalAssetSummary[];
 };
+
+export type DigitalAssetSummary = { id: string; variantId: string | null; displayNameAr: string; displayNameEn: string; mimeType: string; sizeBytes: number; version: number; status: "ACTIVE" | "RETIRED" | "BLOCKED" };
 
 export type ProductOptionValue = { id: string; optionId: string; labelAr: string; labelEn: string; sortOrder: number; isActive: boolean; swatch: string | null; imageMediaId: string | null };
 export type ProductOption = { id: string; productId: string; nameAr: string; nameEn: string; sortOrder: number; isActive: boolean; values: ProductOptionValue[] };
@@ -62,6 +66,7 @@ export type CreateProductInput = {
   compareAtPrice?: string | null;
   marketPrices: { saudiPrice: string; saudiCompareAtPrice?: string | null; egyptPrice: string; egyptCompareAtPrice?: string | null };
   status?: ProductStatus;
+  fulfillmentType?: "PHYSICAL" | "DIGITAL";
   isFeatured?: boolean;
   categoryId?: string | null;
   categoryIds?: string[];
@@ -90,6 +95,12 @@ export type CreateProductInput = {
 export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductImage = { id: string; mediaId: string | null; url: string; altText: string | null; sortOrder: number; isPrimary: boolean };
 export type ProductImageInput = { mediaId: string; altText?: string | null; sortOrder?: number; isPrimary?: boolean };
+
+/** One storefront authority for a product's primary image. */
+export function getPrimaryProductImage(images: ProductImage[] | undefined) {
+  if (!images?.length) return undefined;
+  return images.find((image) => image.isPrimary) ?? [...images].sort((a, b) => a.sortOrder - b.sortOrder)[0];
+}
 export type UpdateProductInput = CreateProductInput & { id: string };
 export type ProductQuery = { search?: string; categorySlug?: string; categoryId?: string; ageMonths?: number; skillIds?: string[]; productTypeIds?: string[]; language?: "ARABIC" | "ENGLISH" | "BILINGUAL" | "LANGUAGE_INDEPENDENT"; status?: ProductStatus; featured?: boolean; minPrice?: string; maxPrice?: string; inStock?: boolean; page?: number; pageSize?: number };
 export type ProductPage = { items: Product[]; total: number; page: number; pageSize: number; totalPages: number };

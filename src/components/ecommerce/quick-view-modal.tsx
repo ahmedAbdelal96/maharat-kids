@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "./price-display";
 import { ProductImage } from "./product-image";
 import type { Product } from "@/modules/products/types";
+import { getPrimaryProductImage } from "@/modules/products/types";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { useTranslations } from "next-intl";
 
 export interface QuickViewModalProps {
   product: Product | null;
+  currency: string;
   isOpen: boolean;
   onClose: () => void;
   onAddToCart?: (product: Product, quantity: number) => void;
@@ -22,6 +24,7 @@ export interface QuickViewModalProps {
 
 export function QuickViewModal({
   product,
+  currency,
   isOpen,
   onClose,
   onAddToCart,
@@ -46,17 +49,18 @@ export function QuickViewModal({
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Product Image Preview */}
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
           <ProductImage
-            src={product.images[0]?.url}
+            src={getPrimaryProductImage(product.images)?.url}
             alt={product.name}
             aspectRatio="square"
             priority
           />
           {product.status === "ACTIVE" && (
             <Badge
-              variant="accent"
-              className="absolute top-3 left-3 flex items-center gap-1"
+              variant="age"
+              size="sm"
+              className="absolute top-3 start-3 flex items-center gap-1 shadow-xs"
             >
               <Sparkles className="h-3 w-3" />
               {catalog("new")}
@@ -79,8 +83,8 @@ export function QuickViewModal({
               <span className="text-xs text-[var(--text-muted)]">•</span>
               <span
                 className={`text-xs font-medium ${
-                (!product.trackInventory || product.stockQuantity > 0)
-                  ? "text-[var(--success)]"
+                  (!product.trackInventory || product.stockQuantity > 0)
+                    ? "text-[var(--success)]"
                     : "text-[var(--destructive)]"
                 }`}
               >
@@ -92,11 +96,12 @@ export function QuickViewModal({
               <PriceDisplay
                 price={product.price}
                 originalPrice={product.compareAtPrice}
+                currency={currency}
                 size="lg"
               />
             </div>
 
-              <p className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed">
+            <p className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed">
               {product.shortDescription || product.description}
             </p>
           </div>

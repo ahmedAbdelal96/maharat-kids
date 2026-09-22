@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { useRouter } from "@/i18n/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ export function CustomerLoginForm({
   resetComplete?: boolean;
   adminMode?: boolean;
 }) {
-  const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("auth");
   const validation = useTranslations("validation");
@@ -51,13 +49,12 @@ export function CustomerLoginForm({
       }
 
       if (adminMode) {
-        router.replace(isSafeReturnTo(callbackUrl) ? stripLocalePrefix(callbackUrl) : "/admin");
-        router.refresh();
+        const destination = isSafeReturnTo(callbackUrl) ? stripLocalePrefix(callbackUrl) : "/admin";
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign(`/${locale}${destination.startsWith("/") ? destination : `/${destination}`}`);
       } else {
         setErrorMessage("Customer password sign-in has been retired. Use the one-time code flow.");
       }
-    } catch {
-      setErrorMessage(t("serviceUnavailable"));
     } finally {
       setIsLoading(false);
     }

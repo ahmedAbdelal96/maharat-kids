@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
+import { getE2EAdminCredentials } from "./support/fixtures";
 
-const adminEmail = process.env.MK01_ADMIN_EMAIL ?? "admin@maharat-kids.local";
-const adminPassword = process.env.MK01_ADMIN_PASSWORD ?? "MaharatKidsLocalAdmin_2026";
+const { email: adminEmail, password: adminPassword } = getE2EAdminCredentials();
 
 async function marketPage(page: Page, country: "SA" | "EG", path: string) {
   await page.setExtraHTTPHeaders({ "x-vercel-ip-country": country });
@@ -12,6 +12,7 @@ async function adminLogin(page: Page, callbackUrl = "%2Far%2Fadmin") {
   await page.goto(`/ar/login?mode=admin&callbackUrl=${callbackUrl}`);
   await page.locator('input[type="email"]').fill(adminEmail);
   await page.locator('input[type="password"]').fill(adminPassword);
+  await expect(page.locator('button[type="submit"]')).toBeEnabled();
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/ar\/admin/);
 }

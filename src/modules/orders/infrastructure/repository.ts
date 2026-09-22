@@ -10,9 +10,12 @@ import { findCouponForPricing } from "@/modules/coupons/infrastructure/repositor
 import { resolveMarket } from "@/modules/market/server/resolver";
 import { getMarketConfiguration } from "@/modules/market/domain/market";
 import { resolveShippingQuote } from "@/modules/shipping/domain/quote";
+import { classifyFulfillment } from "@/modules/digital/domain/service";
+import { canTransitionOrder } from "../domain/rules";
 
 const orderInclude = {
   items: true,
+  digitalEntitlements: { select: { status: true } },
   customer: { select: { name: true, email: true, phone: true } },
   paymentMethod: true,
   promotions: true,
@@ -29,6 +32,7 @@ function snapshot(address: { id: string; market: "SAUDI_ARABIA" | "EGYPT"; count
 
 function toSummary(record: OrderRecord): OrderSummary {
   const promo = record.promotions[0] ?? null;
+  const fulfillment = classifyFulfillment(record.items.map((item) => ({ fulfillmentType: item.fulfillmentTypeSnapshot })));
   return {
     id: record.id,
     orderNumber: record.orderNumber,
@@ -40,6 +44,7 @@ function toSummary(record: OrderRecord): OrderSummary {
     paymentStatus: record.paymentStatus,
     paymentMethodCode: record.paymentMethodCode,
     paymentMethodName: record.paymentMethodName,
+    paymentMethodType: record.paymentMethod?.type ?? null,
     paymentProviderCode: record.paymentProviderCode,
     market: record.market,
     currency: record.currency,
@@ -49,6 +54,7 @@ function toSummary(record: OrderRecord): OrderSummary {
     shippingAmount: money(record.shippingAmount),
     total: money(record.total),
     createdAt: record.createdAt.toISOString(),
+    fulfillment,
     shippingCompanyName: record.shippingCarrierNameEn ?? record.shippingCarrierNameAr ?? record.shipment?.shippingCompany?.name ?? null,
     shippingCarrierNameAr: record.shippingCarrierNameAr,
     shippingCarrierNameEn: record.shippingCarrierNameEn,
@@ -84,6 +90,7 @@ function toDetails(record: OrderRecord): OrderDetails {
     paymentDestination: paymentSnapshot?.bankAccount?.iban ?? record.paymentMethod?.destination ?? null,
     paymentInstructions: paymentSnapshot?.bankAccount?.instructionsEn ?? record.paymentMethod?.instructions ?? null,
     confirmationWhatsApp: record.paymentMethod?.confirmationWhatsApp ?? null,
+    digital: { itemCount: record.items.filter((item) => item.fulfillmentTypeSnapshot === "DIGITAL").length, grantedCount: record.digitalEntitlements.filter((entitlement) => entitlement.status === "ACTIVE").length },
     items: record.items.map((item) => ({
       id: item.id,
       productId: item.productId,
@@ -97,6 +104,8 @@ function toDetails(record: OrderRecord): OrderDetails {
       lineTotal: money(item.unitPrice.mul(item.quantity)),
       isPromotionGift: item.isPromotionGift,
       promotionId: item.promotionId,
+      fulfillmentTypeSnapshot: item.fulfillmentTypeSnapshot,
+      digitalAssetIdsSnapshot: item.digitalAssetIdsSnapshot,
     })),
     history: record.statusHistory.map((entry) => ({
       id: entry.id,
@@ -135,7 +144,7 @@ function toDetails(record: OrderRecord): OrderDetails {
 }
 
 export interface OrderRepository {
-  placeOrder(customerId: string, addressId: string, paymentMethodId: string, currency: string, checkoutToken: string, paymentReference?: string, paymentNotes?: string): Promise<OrderDetails>;
+  placeOrder(customerId: string, addressId: string | null, paymentMethodId: string, currency: string, checkoutToken: string, paymentReference?: string, paymentNotes?: string): Promise<OrderDetails>;
   findCustomerOrders(customerId: string): Promise<OrderSummary[]>;
   findCustomerOrder(customerId: string, orderNumber: string): Promise<OrderDetails | null>;
   findAdminOrders(): Promise<OrderSummary[]>;
@@ -143,6 +152,7 @@ export interface OrderRepository {
   findStatus(orderId: string): Promise<OrderStatus | null>;
   findShipmentStatus(orderId: string): Promise<ShipmentStatus | null>;
   findPaymentStatus(orderId: string): Promise<PaymentStatus | null>;
+  findTransitionContext(orderId: string): Promise<{ status: OrderStatus; paymentStatus: PaymentStatus; paymentMethodType: import("@prisma/client").PaymentMethodType | null; fulfillment: import("../domain/rules").OrderFulfillment; hasShipment: boolean } | null>;
   updateStatus(orderId: string, expectedStatus: OrderStatus, status: OrderStatus, changedByUserId: string, note?: string | null): Promise<OrderDetails>;
   updatePaymentStatus(orderId: string, status: PaymentStatus, changedByUserId: string, note?: string | null): Promise<OrderDetails>;
 }
@@ -150,7 +160,7 @@ export interface OrderRepository {
 export class PrismaOrderRepository implements OrderRepository {
   constructor(private readonly db: PrismaClient = getPrismaClient()) {}
 
-  async placeOrder(customerId: string, addressId: string, paymentMethodId: string, currency: string, checkoutToken: string, paymentReference?: string, paymentNotes?: string): Promise<OrderDetails> {
+  async placeOrder(customerId: string, addressId: string | null, paymentMethodId: string, currency: string, checkoutToken: string, paymentReference?: string, paymentNotes?: string): Promise<OrderDetails> {
     const market = (await resolveMarket()).market;
     const authoritativeCurrency = getMarketConfiguration(market).currency;
     const existing = await this.db.order.findUnique({ where: { checkoutToken }, include: orderInclude });
@@ -160,9 +170,6 @@ export class PrismaOrderRepository implements OrderRepository {
       const cart = await tx.cart.findUnique({ where: { customerId }, include: { coupon: true, items: true } });
       if (!cart || cart.items.length === 0) throw new Error("CART_EMPTY");
       if (cart.market !== market) throw new Error("CART_MARKET_CHANGED");
-      const address = await tx.customerAddress.findFirst({ where: { id: addressId, userId: customerId, market } });
-      if (!address) throw new Error("ADDRESS_NOT_FOUND");
-      const shippingQuote = await resolveShippingQuote({ market, address }, tx);
       const method = await tx.paymentMethod.findFirst({ where: { id: paymentMethodId, enabled: true, marketConfigs: { some: { market, enabled: true } } }, include: { marketConfigs: { where: { market } } } });
       if (!method || (method.type === "ONLINE_PAYMENT" && !method.providerKey) || (method.type === "ONLINE_GATEWAY" && !method.providerKey)) throw new Error("PAYMENT_METHOD_UNAVAILABLE");
       const bankAccount = method.type === "BANK_TRANSFER" || method.type === "MANUAL_TRANSFER" ? await tx.bankTransferAccount.findFirst({ where: { market, enabled: true, isDefault: true }, orderBy: { createdAt: "asc" } }) : null;
@@ -173,6 +180,11 @@ export class PrismaOrderRepository implements OrderRepository {
         include: { images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] }, marketPrices: { where: { market } }, variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } }, marketPrices: { where: { market } } } } },
       });
       const productById = new Map(products.map((product) => [product.id, product]));
+      const fulfillment = classifyFulfillment(products);
+      if (fulfillment !== "PHYSICAL_ONLY" && method?.type === "CASH_ON_DELIVERY") throw new Error("COD_NOT_ELIGIBLE_FOR_DIGITAL");
+      const address = fulfillment === "DIGITAL_ONLY" ? null : await tx.customerAddress.findFirst({ where: { id: addressId ?? "", userId: customerId, market } });
+      if (fulfillment !== "DIGITAL_ONLY" && !address) throw new Error("ADDRESS_NOT_FOUND");
+      const shippingQuote = fulfillment === "DIGITAL_ONLY" ? null : await resolveShippingQuote({ market, address: address! }, tx);
       const variantByItem = new Map<string, (typeof products[number])["variants"][number]>();
       const priceByItem = new Map<string, Prisma.Decimal>();
 
@@ -181,6 +193,10 @@ export class PrismaOrderRepository implements OrderRepository {
         const variant = item.variantId ? product?.variants.find((candidate) => candidate.id === item.variantId && candidate.active) : undefined;
         const price = variant?.marketPrices[0]?.price ?? product?.marketPrices[0]?.price;
         if (!product || product.status !== "ACTIVE" || !price || (product.variants.length > 0 && !variant)) throw new Error("PRODUCT_UNAVAILABLE");
+        if (product.fulfillmentType === "DIGITAL") {
+          const assets = await tx.digitalAsset.findMany({ where: { productId: product.id, status: "ACTIVE", OR: [{ variantId: null }, ...(variant ? [{ variantId: variant.id }] : [])] }, select: { id: true } });
+          if (assets.length === 0) throw new Error("DIGITAL_ASSET_UNAVAILABLE");
+        }
         if (variant ? variant.trackInventory : product.trackInventory) {
           if (variant) {
             const changedVariant = await tx.productVariant.updateMany({ where: { id: variant.id, active: true, trackInventory: true, stockQuantity: { gte: item.quantity } }, data: { stockQuantity: { decrement: item.quantity } } });
@@ -257,13 +273,22 @@ export class PrismaOrderRepository implements OrderRepository {
         }
       }
 
-      const shippingAmount = shippingQuote.amount;
+      const shippingAmount = shippingQuote?.amount ?? new Prisma.Decimal(0);
       const calculatedTotal = subtotal.sub(promotionDiscount).sub(couponDiscount).add(shippingAmount);
       const total = calculatedTotal.gt(0) ? calculatedTotal : new Prisma.Decimal(0);
       const paymentStatus = method.type === "CASH_ON_DELIVERY" ? ("UNPAID" as const) : method.type === "ONLINE_PAYMENT" || method.type === "ONLINE_GATEWAY" ? ("PENDING" as const) : ("PENDING_VERIFICATION" as const);
       const paymentProviderCode = method.type === "ONLINE_PAYMENT" || method.type === "ONLINE_GATEWAY" ? method.providerKey : null;
       const paymentSnapshot = { method: method.type === "MANUAL_TRANSFER" ? "BANK_TRANSFER" : method.type, code: method.code, name: method.name, provider: paymentProviderCode, market, currency: authoritativeCurrency, amount: total.toFixed(2), bankAccount: bankAccount ? { id: bankAccount.id, bankNameAr: bankAccount.bankNameAr, bankNameEn: bankAccount.bankNameEn, accountHolderName: bankAccount.accountHolderName, iban: bankAccount.iban, accountNumber: bankAccount.accountNumber, swiftCode: bankAccount.swiftCode, instructionsAr: bankAccount.instructionsAr, instructionsEn: bankAccount.instructionsEn } : null };
 
+      const digitalAssetIdsByItem = new Map<string, string[]>();
+      for (const item of cart.items) {
+        const product = productById.get(item.productId);
+        const variant = variantByItem.get(item.id);
+        if (product?.fulfillmentType === "DIGITAL") {
+          const assets = await tx.digitalAsset.findMany({ where: { productId: product.id, status: "ACTIVE", OR: [{ variantId: null }, ...(variant ? [{ variantId: variant.id }] : [])] }, select: { id: true } });
+          digitalAssetIdsByItem.set(item.id, assets.map((asset) => asset.id));
+        }
+      }
       const orderItemsData = [
         ...cart.items.map((item) => {
           const product = productById.get(item.productId)!;
@@ -280,6 +305,8 @@ export class PrismaOrderRepository implements OrderRepository {
             isPromotionGift: false,
             promotionId: null,
             inventoryTrackedAtPurchase: variant ? variant.trackInventory : product.trackInventory,
+            fulfillmentTypeSnapshot: product.fulfillmentType,
+            digitalAssetIdsSnapshot: product.fulfillmentType === "DIGITAL" ? (digitalAssetIdsByItem.get(item.id) ?? []) as Prisma.InputJsonValue : Prisma.JsonNull,
           };
         }),
         ...giftItems.map((gift) => ({
@@ -315,13 +342,13 @@ export class PrismaOrderRepository implements OrderRepository {
           promotionDiscount,
           couponDiscount,
           shippingAmount,
-          shippingCarrierId: shippingQuote.carrierId,
-          shippingCarrierCode: shippingQuote.carrierCode,
-          shippingCarrierNameAr: shippingQuote.carrierNameAr,
-          shippingCarrierNameEn: shippingQuote.carrierNameEn,
-          shippingRateSource: shippingQuote.source,
+          shippingCarrierId: shippingQuote?.carrierId ?? null,
+          shippingCarrierCode: shippingQuote?.carrierCode ?? null,
+          shippingCarrierNameAr: shippingQuote?.carrierNameAr ?? null,
+          shippingCarrierNameEn: shippingQuote?.carrierNameEn ?? null,
+          shippingRateSource: shippingQuote?.source ?? null,
           total,
-          shippingAddress: snapshot(address) as Prisma.InputJsonValue,
+          shippingAddress: address ? snapshot(address) as Prisma.InputJsonValue : {} as Prisma.InputJsonValue,
           items: { create: orderItemsData },
           promotions: appliedPromotion
             ? {
@@ -358,7 +385,7 @@ export class PrismaOrderRepository implements OrderRepository {
 
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
       return order;
-    });
+    }, { timeout: 30_000 });
 
     return toDetails(record);
   }
@@ -369,11 +396,18 @@ export class PrismaOrderRepository implements OrderRepository {
   async findStatus(orderId: string) { const record = await this.db.order.findUnique({ where: { id: orderId }, select: { status: true } }); return record?.status ?? null; }
   async findShipmentStatus(orderId: string) { const record = await this.db.orderShipment.findUnique({ where: { orderId }, select: { status: true } }); return record?.status ?? null; }
   async findPaymentStatus(orderId: string) { const record = await this.db.order.findUnique({ where: { id: orderId }, select: { paymentStatus: true } }); return record?.paymentStatus ?? null; }
+  async findTransitionContext(orderId: string) {
+    const record = await this.db.order.findUnique({ where: { id: orderId }, select: { status: true, paymentStatus: true, paymentMethod: { select: { type: true } }, items: { select: { fulfillmentTypeSnapshot: true } }, shipment: { select: { id: true } } } });
+    if (!record) return null;
+    return { status: record.status, paymentStatus: record.paymentStatus, paymentMethodType: record.paymentMethod?.type ?? null, fulfillment: classifyFulfillment(record.items.map((item) => ({ fulfillmentType: item.fulfillmentTypeSnapshot }))), hasShipment: Boolean(record.shipment) };
+  }
   async updateStatus(orderId: string, expectedStatus: OrderStatus, status: OrderStatus, changedByUserId: string, note?: string | null) {
     const record = await this.db.$transaction(async (tx) => {
       const current = await tx.order.findUnique({ where: { id: orderId }, include: { paymentMethod: true, items: true, shipment: { select: { status: true } } } });
       if (!current) throw new Error("ORDER_NOT_FOUND");
       if (current.status !== expectedStatus) throw new Error("ORDER_STATE_CHANGED");
+      const fulfillment = classifyFulfillment(current.items.map((item) => ({ fulfillmentType: item.fulfillmentTypeSnapshot })));
+      if (!canTransitionOrder({ current: current.status, next: status, paymentStatus: current.paymentStatus, paymentMethodType: current.paymentMethod?.type ?? null, fulfillment, hasShipment: Boolean(current.shipment) })) throw new Error("ORDER_TRANSITION_INVALID");
       const canRestoreBeforeHandover = !current.shipment || ["NOT_ASSIGNED", "READY_FOR_SHIPPING"].includes(current.shipment.status);
       if (status === "CANCELLED" && canRestoreBeforeHandover) {
         for (const item of current.items) {
@@ -404,6 +438,8 @@ export class PrismaOrderRepository implements OrderRepository {
     const record = await this.db.$transaction(async (tx) => {
       const current = await tx.order.findUnique({ where: { id: orderId }, include: { paymentMethod: true } });
       if (!current) throw new Error("ORDER_NOT_FOUND");
+      if (current.paymentStatus === status) return tx.order.findUnique({ where: { id: orderId }, include: orderInclude });
+      if (!( ["PENDING", "PENDING_VERIFICATION"].includes(current.paymentStatus) && ["PAID", "FAILED"].includes(status) )) throw new Error("PAYMENT_TRANSITION_INVALID");
       await tx.order.update({ where: { id: orderId }, data: { paymentStatus: status, paidAt: status === "PAID" ? new Date() : null } });
       if (current.paymentStatus !== status) await tx.paymentStatusHistory.create({ data: { orderId, oldStatus: current.paymentStatus, newStatus: status, changedByUserId, note: note ?? null } });
       if (status === "PAID" && current.paymentMethod?.type === "CASH_ON_DELIVERY" && ["DELIVERED", "COMPLETED"].includes(current.status)) await tx.paymentSettlement.upsert({ where: { orderId }, create: { orderId, amount: current.total, status: "PENDING_SETTLEMENT" }, update: {} });

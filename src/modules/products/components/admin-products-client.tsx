@@ -27,6 +27,7 @@ import {
 import { deleteMedia } from "@/modules/media/server/actions";
 import { saveProductTranslations } from "@/modules/catalog/server/translation-actions";
 import { saveProductVariants } from "../server/variant-actions";
+import { uploadDigitalAsset } from "@/modules/digital/server/actions";
 import {
   adjustProductStock,
   createProduct,
@@ -51,6 +52,7 @@ type FormState = {
   egyptPrice: string;
   egyptCompareAtPrice: string;
   status: Product["status"];
+  fulfillmentType: Product["fulfillmentType"];
   isFeatured: boolean;
   categoryId: string;
   categoryIds: string[];
@@ -87,6 +89,7 @@ const emptyForm: FormState = {
   egyptPrice: "",
   egyptCompareAtPrice: "",
   status: "DRAFT",
+  fulfillmentType: "PHYSICAL",
   isFeatured: false,
   categoryId: "",
   categoryIds: [],
@@ -197,6 +200,7 @@ export function AdminProductsClient({
       egyptPrice: product.marketPrices.egyptPrice,
       egyptCompareAtPrice: product.marketPrices.egyptCompareAtPrice ?? "",
       status: product.status,
+      fulfillmentType: product.fulfillmentType,
       isFeatured: product.isFeatured,
       categoryId: product.categoryId ?? "",
       categoryIds: product.categoryIds,
@@ -304,7 +308,7 @@ export function AdminProductsClient({
   }
   function addVariantOption() { const id = crypto.randomUUID(); setVariantOptions((current) => [...current, { id, nameAr: "", nameEn: "", values: [{ id: crypto.randomUUID(), labelAr: "", labelEn: "", isActive: true }] }]); }
   function addVariantValue(optionIndex: number) { setVariantOptions((current) => current.map((option, index) => index === optionIndex ? { ...option, values: [...option.values, { id: crypto.randomUUID(), labelAr: "", labelEn: "", isActive: true }] } : option)); }
-  function generateVariantRows() { const options = variantOptions.filter((option) => option.values.some((value) => value.labelEn.trim())); const combinations = options.reduce<Array<string[]>>((rows, option) => rows.flatMap((row) => option.values.filter((value) => value.labelEn.trim()).map((value) => [...row, value.id ?? `${options.indexOf(option)}-${option.values.indexOf(value)}`])), [[]]); setVariantRows(combinations.map((optionValueIds, index) => variantRows.find((row) => row.optionValueIds.join("|") === optionValueIds.join("|")) ?? { optionValueIds, sku: form.sku ? `${form.sku}-V${String(index + 1).padStart(2, "0")}` : `VARIANT-${index + 1}`, stockQuantity: "0", active: true, saudiPrice: "", egyptPrice: "" })); }
+  function generateVariantRows() { const options = variantOptions.filter((option) => option.values.some((value) => value.labelEn.trim())); const combinations = options.reduce<Array<string[]>>((rows, option) => rows.flatMap((row) => option.values.filter((value) => value.labelEn.trim()).map((value) => [...row, value.id ?? `${options.indexOf(option)}-${option.values.indexOf(value)}`])), [[]]); const usedSkus = new Set(variantRows.map((row) => row.sku).filter(Boolean)); let nextSkuNumber = variantRows.length + 1; setVariantRows(combinations.map((optionValueIds) => { const existing = variantRows.find((row) => row.optionValueIds.join("|") === optionValueIds.join("|")); if (existing) return existing; let sku = form.sku ? `${form.sku}-V${String(nextSkuNumber).padStart(2, "0")}` : `VARIANT-${nextSkuNumber}`; while (usedSkus.has(sku)) { nextSkuNumber += 1; sku = form.sku ? `${form.sku}-V${String(nextSkuNumber).padStart(2, "0")}` : `VARIANT-${nextSkuNumber}`; } usedSkus.add(sku); nextSkuNumber += 1; return { optionValueIds, sku, stockQuantity: "0", active: true, saudiPrice: "", egyptPrice: "" }; })); }
   async function changeStatus(product: Product, status: "ACTIVE" | "ARCHIVED") {
     setError("");
     const result = await setProductStatus({ id: product.id, status });
@@ -670,6 +674,7 @@ export function AdminProductsClient({
               />
             </label>
           </section>
+          {form.fulfillmentType === "DIGITAL" && form.id && <section className="space-y-3 border-t border-[var(--border)] pt-4"><div><h3 className="text-sm font-bold">Digital files</h3><p className="mt-1 text-xs text-[var(--text-secondary)]">PDFs are stored in private storage and become downloadable only after trusted payment.</p></div><div className="space-y-2">{(initialPage.items.find((item) => item.id === form.id)?.digitalAssets ?? []).map((asset) => <div key={asset.id} className="flex items-center justify-between rounded-md border border-[var(--border)] px-3 py-2 text-xs"><span>{asset.displayNameEn} · v{asset.version}</span><span className="text-[var(--text-secondary)]">{asset.status} · {(asset.sizeBytes / 1024).toFixed(0)} KB</span></div>)}</div><form action={async (payload) => { const result = await uploadDigitalAsset(payload); if (!result.success) setError(result.error.message); else setError(""); }} className="grid gap-3 rounded-md bg-[var(--surface-muted)] p-3 sm:grid-cols-2"><input type="hidden" name="productId" value={form.id} /><label className="text-xs font-semibold">Arabic title<Input name="displayNameAr" required /></label><label className="text-xs font-semibold">English title<Input name="displayNameEn" required /></label>{variantRows.length > 0 && <label className="text-xs font-semibold">Variant<select name="variantId" className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"><option value="">Common product asset</option>{variantRows.filter((variant) => variant.id).map((variant) => <option key={variant.id} value={variant.id}>{variant.sku}</option>)}</select></label>}<label className="text-xs font-semibold">PDF file<input name="file" type="file" accept="application/pdf,.pdf" required className="mt-1 block w-full text-xs" /></label><div className="flex items-end"><Button type="submit" variant="outline">Upload private PDF</Button></div></form></section>}
           <section className="space-y-3 border-t border-[var(--border)] pt-4">
             <h3 className="text-sm font-bold">Market pricing</h3>
             <div className="grid gap-5 lg:grid-cols-2">
@@ -764,6 +769,7 @@ export function AdminProductsClient({
           <section className="space-y-3 border-t border-[var(--border)] pt-4">
             <h3 className="text-sm font-bold">Visibility</h3>
             <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-semibold">Fulfillment type<select value={form.fulfillmentType} onChange={(event) => updateField("fulfillmentType", event.target.value as Product["fulfillmentType"])} className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select></label>
               <label className="block text-xs font-semibold">
                 Status
                 <select

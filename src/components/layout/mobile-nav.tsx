@@ -41,6 +41,7 @@ export function MobileNav({
   const pathname = usePathname();
   const t = useTranslations("navigation");
   const common = useTranslations("common.navigation");
+  const isArabic = t("home") === "الرئيسية";
   const [, startLogout] = useTransition();
 
   function handleLogout() {
@@ -68,9 +69,9 @@ export function MobileNav({
     <Sheet
       isOpen={isOpen}
       onClose={onClose}
-      side="left"
+      side={isArabic ? "right" : "left"}
       title={common("menu")}
-      description={t("categories")}
+      description={isArabic ? "متجر مهارات طفل التعليمي" : "Maharat Kids Learning Store"}
     >
       <div className="flex flex-col h-full justify-between gap-6 pb-2">
         <div className="space-y-4">

@@ -295,6 +295,7 @@ export default async function OfferDetailPage({
               <ProductCard
                 key={prod.id}
                 product={prod}
+                currency={market.configuration.currency}
                 initialFavorite={favoriteIds.includes(prod.id)}
               />
             ))}

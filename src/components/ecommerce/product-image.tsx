@@ -11,6 +11,7 @@ export interface ProductImageProps {
   priority?: boolean;
   className?: string;
   fill?: boolean;
+  fit?: "contain" | "cover";
 }
 
 const DEFAULT_PLACEHOLDER = "/placeholders/product-placeholder.svg";
@@ -21,6 +22,7 @@ export function ProductImage({
   aspectRatio = "square",
   priority = false,
   className,
+  fit = "cover",
 }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState<string>(src || DEFAULT_PLACEHOLDER);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +53,7 @@ export function ProductImage({
           setIsLoading(false);
         }}
         className={cn(
-          "object-cover transition-all duration-500 ease-out group-hover:scale-105",
+          `${fit === "contain" ? "object-contain p-3" : "object-cover"} transition-all duration-500 ease-out group-hover:scale-105`,
           isLoading ? "scale-105 blur-xs opacity-60" : "scale-100 blur-0 opacity-100",
         )}
       />

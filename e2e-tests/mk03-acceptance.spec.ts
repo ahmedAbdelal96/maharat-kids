@@ -1,20 +1,23 @@
 import { test, expect, type Page } from "@playwright/test";
-import { createHmac } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { createE2EShippingFixture, getE2EAdminCredentials } from "./support/fixtures";
 
-const adminEmail = process.env.MK03_ADMIN_EMAIL ?? "admin@maharat-kids.local";
-const adminPassword = process.env.MK03_ADMIN_PASSWORD ?? "MaharatKidsLocalAdmin_2026";
+const { email: adminEmail, password: adminPassword } = getE2EAdminCredentials();
 
 async function adminLogin(page: Page) {
   await page.setExtraHTTPHeaders({ "x-vercel-ip-country": "SA" });
   await page.goto("/ar/login?mode=admin&callbackUrl=%2Far%2Fadmin");
   await page.locator('input[type="email"]').fill(adminEmail);
   await page.locator('input[type="password"]').fill(adminPassword);
+  await expect(page.locator('button[type="submit"]')).toBeEnabled();
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/ar\/admin/);
 }
 
 test("admin shipping configuration shows one automatic carrier with independent market fees", async ({ page }) => {
+  const db = new PrismaClient();
+  const fixture = await createE2EShippingFixture(db);
+  try {
   await page.setViewportSize({ width: 390, height: 844 });
   await adminLogin(page);
   await page.goto("/ar/admin/shipping");
@@ -24,22 +27,27 @@ test("admin shipping configuration shows one automatic carrier with independent 
   await expect(page.locator('input[type="number"]').nth(0)).toHaveValue("25.00");
   await expect(page.locator('input[type="number"]').nth(1)).toHaveValue("80.00");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  } finally {
+    await fixture.cleanup();
+    await db.$disconnect();
+  }
 });
 
 test("authenticated Saudi checkout shows the configured carrier and fee without a carrier selector", async ({ page }) => {
   const db = new PrismaClient();
+  const fixture = await createE2EShippingFixture(db);
   const phone = `+9665${Date.now().toString().slice(-8)}`;
   const localPhone = `0${phone.slice(4)}`;
   const code = "123456";
-  const now = new Date();
   let userId = "";
   try {
-    await db.otpChallenge.create({ data: { channel: "PHONE", destination: phone, purpose: "CUSTOMER_AUTH", codeHash: createHmac("sha256", process.env.AUTH_SECRET ?? "maharat-kids-local-development-auth-secret-2026").update(code).digest("hex"), expiresAt: new Date(now.getTime() + 300_000), resendAvailableAt: new Date(now.getTime() + 60_000) } });
     await page.setExtraHTTPHeaders({ "x-vercel-ip-country": "SA" });
     await page.goto("/ar/login?callbackUrl=%2Fcheckout");
     await page.locator('input[type="tel"]').fill(localPhone);
+    await expect(page.getByRole("button", { name: /إرسال الرمز|Send code/ })).toBeEnabled();
     await page.getByRole("button", { name: /إرسال الرمز|Send code/ }).click();
     await page.locator('input[autocomplete="one-time-code"]').fill(code);
+    await expect(page.getByRole("button", { name: /متابعة|Continue/ })).toBeEnabled();
     await page.getByRole("button", { name: /متابعة|Continue/ }).click();
     await expect(page).toHaveURL(/\/ar\/checkout/);
     const user = await db.user.findFirstOrThrow({ where: { phone } });
@@ -57,23 +65,25 @@ test("authenticated Saudi checkout shows the configured carrier and fee without 
     if (!userId) userId = (await db.user.findFirst({ where: { phone } }))?.id ?? "";
     if (userId) await db.user.delete({ where: { id: userId } }).catch(() => undefined);
     await db.otpChallenge.deleteMany({ where: { destination: phone } });
+    await fixture.cleanup();
     await db.$disconnect();
   }
 });
 
 test("authenticated Egypt checkout uses the independent EGP carrier fee", async ({ page }) => {
   const db = new PrismaClient();
+  const fixture = await createE2EShippingFixture(db);
   const email = `mk03-eg-${Date.now()}@example.test`;
   const code = "123456";
-  const now = new Date();
   let userId = "";
   try {
-    await db.otpChallenge.create({ data: { channel: "EMAIL", destination: email, purpose: "CUSTOMER_AUTH", codeHash: createHmac("sha256", process.env.AUTH_SECRET ?? "maharat-kids-local-development-auth-secret-2026").update(code).digest("hex"), expiresAt: new Date(now.getTime() + 300_000), resendAvailableAt: new Date(now.getTime() + 60_000) } });
     await page.setExtraHTTPHeaders({ "x-vercel-ip-country": "EG" });
     await page.goto("/en/login?callbackUrl=%2Fcheckout");
     await page.locator('input[type="email"]').fill(email);
+    await expect(page.getByRole("button", { name: /Send code/ })).toBeEnabled();
     await page.getByRole("button", { name: /Send code/ }).click();
     await page.locator('input[autocomplete="one-time-code"]').fill(code);
+    await expect(page.getByRole("button", { name: /Continue/ })).toBeEnabled();
     await page.getByRole("button", { name: /Continue/ }).click();
     await expect(page).toHaveURL(/\/en\/checkout/);
     const user = await db.user.findFirstOrThrow({ where: { email } });
@@ -84,12 +94,13 @@ test("authenticated Egypt checkout uses the independent EGP carrier fee", async 
     await db.cartItem.create({ data: { cartId: cart.id, productId: product.id, name: product.name, unitPrice: product.marketPrices[0].price, quantity: 1 } });
     await page.goto("/en/checkout");
     await expect(page.getByText("Test Express", { exact: true })).toBeVisible();
-    await expect(page.getByText(/80/)).toBeVisible();
+    await expect(page.getByText(/80\.00/).last()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   } finally {
     if (!userId) userId = (await db.user.findFirst({ where: { email } }))?.id ?? "";
     if (userId) await db.user.delete({ where: { id: userId } }).catch(() => undefined);
     await db.otpChallenge.deleteMany({ where: { destination: email } });
+    await fixture.cleanup();
     await db.$disconnect();
   }
 });

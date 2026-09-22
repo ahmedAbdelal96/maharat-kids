@@ -170,14 +170,17 @@ function orderVariant(status: string): "success" | "warning" | "destructive" {
   return "warning";
 }
 
+const customerOrderStatusLabels = { en: { PENDING: "Order received", CONFIRMED: "Confirmed", PROCESSING: "Processing", SHIPPED: "Shipped", OUT_FOR_DELIVERY: "Out for delivery", DELIVERED: "Delivered", COMPLETED: "Completed", CANCELLED: "Cancelled" }, ar: { PENDING: "تم استلام الطلب", CONFIRMED: "تم تأكيد الطلب", PROCESSING: "جاري تجهيز الطلب", SHIPPED: "تم الشحن", OUT_FOR_DELIVERY: "خرج للتوصيل", DELIVERED: "تم التوصيل", COMPLETED: "مكتمل", CANCELLED: "تم إلغاء الطلب" } } as const;
+const customerPaymentLabels = { en: { UNPAID: "Payment due on delivery", PENDING: "Payment pending", PENDING_VERIFICATION: "Awaiting review", PAID: "Payment confirmed", FAILED: "Payment failed", PARTIALLY_REFUNDED: "Partially refunded", REFUNDED: "Refunded" }, ar: { UNPAID: "الدفع عند الاستلام", PENDING: "الدفع قيد الانتظار", PENDING_VERIFICATION: "بانتظار المراجعة", PAID: "تم تأكيد الدفع", FAILED: "تعذر تأكيد الدفع", PARTIALLY_REFUNDED: "تم رد جزء من المبلغ", REFUNDED: "تم رد المبلغ" } } as const;
+
 export function CustomerAccountContent({
   initialData,
-  currency = "SAR",
+  currency,
   market = "SAUDI_ARABIA",
   initialSection = "profile",
 }: {
   initialData: CustomerAccountData;
-  currency?: string;
+  currency: string;
   market?: Market;
   initialSection?: AccountSection;
 }) {
@@ -821,7 +824,7 @@ export function CustomerAccountContent({
                           </p>
                         </div>
                         <Badge variant={orderVariant(order.status)} size="sm">
-                          {order.status}
+                            {customerOrderStatusLabels[isArabic ? "ar" : "en"][order.status]}
                         </Badge>
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -838,8 +841,12 @@ export function CustomerAccountContent({
                             {t("payment")}
                           </p>
                           <p className="mt-1 text-xs font-semibold">
-                            {order.paymentStatus}
+                            {customerPaymentLabels[isArabic ? "ar" : "en"][order.paymentStatus]}
                           </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{isArabic ? "التنفيذ" : "Fulfillment"}</p>
+                          <p className="mt-1 text-xs font-semibold">{order.fulfillment === "DIGITAL_ONLY" ? (isArabic ? "رقمي" : "Digital") : order.fulfillment === "MIXED" ? (isArabic ? "مختلط" : "Mixed") : (isArabic ? "مادي" : "Physical")}</p>
                         </div>
                         <div className="col-span-2 flex items-end justify-end">
                           <span className="text-xs font-bold text-[var(--primary)] transition-transform group-hover:translate-x-0.5">

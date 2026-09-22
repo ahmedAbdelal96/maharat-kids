@@ -254,7 +254,19 @@ async function seedCatalog(): Promise<void> {
   for (const product of await prisma.product.findMany({ where: { status: "ACTIVE" }, select: { id: true, categoryId: true } })) { if (product.categoryId) await prisma.productCategory.upsert({ where: { productId_categoryId: { productId: product.id, categoryId: product.categoryId } }, update: {}, create: { productId: product.id, categoryId: product.categoryId } }); await prisma.productSkill.upsert({ where: { productId_skillId: { productId: product.id, skillId: skillFocus.id } }, update: {}, create: { productId: product.id, skillId: skillFocus.id } }); await prisma.productLearningObjective.upsert({ where: { productId_learningObjectiveId: { productId: product.id, learningObjectiveId: objectiveAttention.id } }, update: {}, create: { productId: product.id, learningObjectiveId: objectiveAttention.id } }); await prisma.productProductType.upsert({ where: { productId_productTypeId: { productId: product.id, productTypeId: typePuzzle.id } }, update: {}, create: { productId: product.id, productTypeId: typePuzzle.id } }); await prisma.productUseContext.upsert({ where: { productId_useContextId: { productId: product.id, useContextId: contextHome.id } }, update: {}, create: { productId: product.id, useContextId: contextHome.id } }); }
 }
 
+async function seedBlogCategories(): Promise<void> {
+  const categories = [
+    { slug: "play-learning", nameAr: "اللعب والتعلم", nameEn: "Play and learning", sortOrder: 0 },
+    { slug: "parenting", nameAr: "إرشاد الوالدين", nameEn: "Parenting guidance", sortOrder: 1 },
+    { slug: "activities", nameAr: "أنشطة منزلية", nameEn: "At-home activities", sortOrder: 2 },
+  ];
+  for (const category of categories) {
+    await prisma.blogCategory.upsert({ where: { slug: category.slug }, update: { ...category, isActive: true }, create: { ...category, isActive: true } });
+  }
+}
+
 async function main(): Promise<void> {
+  const production = process.env.NODE_ENV === "production";
   const seedAdminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
 
@@ -339,21 +351,33 @@ async function main(): Promise<void> {
     },
   });
 
+  const payzatyReady = Boolean(process.env.PAYZATY_ACCOUNT_NO && process.env.PAYZATY_SECRET_KEY && process.env.PAYZATY_BASE_URL && process.env.PAYZATY_STATUS_ENDPOINT);
   for (const method of defaultPaymentMethods) {
+    const enabled = production
+      ? method.type === "CASH_ON_DELIVERY"
+        ? method.enabled
+        : method.type === "ONLINE_PAYMENT" && payzatyReady
+      : method.enabled;
     const record = await prisma.paymentMethod.upsert({
       where: { code: method.code },
-      update: { name: method.name, type: method.type, isSystem: true, enabled: method.enabled, instructions: method.instructions, providerKey: method.providerKey },
-      create: method,
+      update: { name: method.name, type: method.type, isSystem: true, enabled, instructions: method.instructions, providerKey: method.providerKey },
+      create: { ...method, enabled },
     });
     for (const market of ["SAUDI_ARABIA", "EGYPT"] as const) {
-      await prisma.paymentMethodMarketConfig.upsert({ where: { market_paymentMethodId: { market, paymentMethodId: record.id } }, update: { enabled: method.enabled, sortOrder: method.sortOrder }, create: { market, paymentMethodId: record.id, enabled: method.enabled, sortOrder: method.sortOrder } });
+      await prisma.paymentMethodMarketConfig.upsert({ where: { market_paymentMethodId: { market, paymentMethodId: record.id } }, update: { enabled, sortOrder: method.sortOrder }, create: { market, paymentMethodId: record.id, enabled, sortOrder: method.sortOrder } });
     }
   }
-  for (const account of [
-    { market: "SAUDI_ARABIA" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank", accountHolderName: "Maharat Kids Test", iban: "SA0000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
-    { market: "EGYPT" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank Egypt", accountHolderName: "Maharat Kids Test", iban: "EG000000000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
-  ]) {
-    await prisma.bankTransferAccount.upsert({ where: { id: `seed-${account.market.toLowerCase()}` }, update: { ...account, enabled: true, isDefault: true }, create: { id: `seed-${account.market.toLowerCase()}`, ...account, enabled: true, isDefault: true } });
+  if (!production) {
+    for (const account of [
+      { market: "SAUDI_ARABIA" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank", accountHolderName: "Maharat Kids Test", iban: "SA0000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
+      { market: "EGYPT" as const, bankNameAr: "بنك الاختبار", bankNameEn: "Test Bank Egypt", accountHolderName: "Maharat Kids Test", iban: "EG000000000000000000000000000", accountNumber: "0000000000", swiftCode: null, instructionsAr: "استخدم بيانات التحويل التجريبية فقط.", instructionsEn: "Use the disposable test transfer details only." },
+    ]) {
+      await prisma.bankTransferAccount.upsert({ where: { id: `seed-${account.market.toLowerCase()}` }, update: { ...account, enabled: true, isDefault: true }, create: { id: `seed-${account.market.toLowerCase()}`, ...account, enabled: true, isDefault: true } });
+    }
+  } else {
+    // A prior development seed must never remain an operational production
+    // bank account. Admin configures real accounts after deployment.
+    await prisma.bankTransferAccount.updateMany({ where: { id: { startsWith: "seed-" } }, data: { enabled: false, isDefault: false } });
   }
 
   const adminRole = await prisma.role.findUnique({
@@ -391,10 +415,11 @@ async function main(): Promise<void> {
 
   // Demo catalog data is useful in development but must never be written by a
   // production bootstrap unless explicitly enabled by the deployment owner.
-  const seedDemoCatalog = process.env.NODE_ENV !== "production" || process.env.SEED_DEMO_CATALOG === "true";
+  const seedDemoCatalog = !production;
   if (seedDemoCatalog) {
     await seedCatalog();
   }
+  await seedBlogCategories();
 }
 
 main()

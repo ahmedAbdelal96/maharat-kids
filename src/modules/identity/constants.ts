@@ -69,6 +69,12 @@ export const defaultPermissionDefinitions = [
   { key: "payments.refund", description: "Complete customer refunds." },
   { key: "reviews.view", description: "View customer product reviews." },
   { key: "reviews.moderate", description: "Approve or reject customer product reviews." },
+  { key: "blog.view", description: "View blog content management." },
+  { key: "blog.create", description: "Create blog articles." },
+  { key: "blog.update", description: "Edit blog articles." },
+  { key: "blog.publish", description: "Publish and unpublish blog articles." },
+  { key: "blog.delete", description: "Archive blog articles." },
+  { key: "blog.categories", description: "Manage blog categories." },
 ] as const;
 
 export const defaultRoleDefinitions = [
@@ -129,6 +135,12 @@ export const defaultRoleDefinitions = [
       "payments.refund",
       "reviews.view",
       "reviews.moderate",
+      "blog.view",
+      "blog.create",
+      "blog.update",
+      "blog.publish",
+      "blog.delete",
+      "blog.categories",
     ],
   },
 ] as const;

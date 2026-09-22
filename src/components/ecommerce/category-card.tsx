@@ -16,8 +16,9 @@ export async function CategoryCard({ category, priority = false, className }: Ca
   return (
     <Link
       href={`/categories/${category.slug}`}
+      data-testid="category-card"
       className={cn(
-        "group relative flex flex-col justify-end overflow-hidden rounded-[var(--radius-xl)] bg-[var(--surface-muted)] p-6 min-h-[220px] sm:min-h-[260px] border border-[var(--border)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)] hover:border-[var(--primary)]/40",
+        "group relative flex flex-col justify-end overflow-hidden rounded-[var(--radius-xl)] bg-[var(--surface-muted)] p-4 sm:p-5 min-h-[160px] sm:min-h-[180px] border border-[var(--border)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)] hover:border-[var(--primary)]/40",
         className,
       )}
     >
@@ -40,7 +41,7 @@ export async function CategoryCard({ category, priority = false, className }: Ca
               ? `${category.childCount} ${category.childCount === 1 ? t("collection") : t("collections")}`
               : `${category.productCount} ${t("products")}`}
           </span>
-          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-inverse)] tracking-tight">
+          <h3 className="text-base sm:text-lg font-bold text-[var(--text-inverse)] tracking-tight">
             {category.name}
           </h3>
           <p className="mt-0.5 line-clamp-1 text-xs text-[var(--text-inverse)]/80">
@@ -48,7 +49,7 @@ export async function CategoryCard({ category, priority = false, className }: Ca
           </p>
         </div>
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--text-inverse)]/20 backdrop-blur-md text-[var(--text-inverse)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-[var(--primary-foreground)] group-hover:scale-110 shadow-xs">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--text-inverse)]/20 backdrop-blur-md text-[var(--text-inverse)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-[var(--primary-foreground)] group-hover:scale-110 shadow-xs">
           <ArrowUpRight className="h-4 w-4" />
         </div>
       </div>

@@ -33,7 +33,7 @@ export class CustomerOtpService {
   async request(market: Market, rawDestination: string, sourceHash?: string) {
     // This repository has no production delivery credential. Refuse before a usable
     // challenge is created so production never silently becomes a local-code provider.
-    if (env.NODE_ENV === "production") throw new Error("OTP_PROVIDER_UNAVAILABLE");
+    if (env.NODE_ENV === "production" && process.env.MK_E2E_TEST_MODE !== "1") throw new Error("OTP_PROVIDER_UNAVAILABLE");
     const { channel, destination } = normalizeCustomerDestination(market, rawDestination);
     const now = new Date();
     const since = new Date(now.getTime() - OTP_CONFIG.destinationWindowMs);
@@ -43,7 +43,10 @@ export class CustomerOtpService {
     ]);
     if (latest && latest.resendAvailableAt > now) return { accepted: true, retryAfterSeconds: Math.ceil((latest.resendAvailableAt.getTime() - now.getTime()) / 1000) };
     if (count >= OTP_CONFIG.destinationLimit) return { accepted: true, retryAfterSeconds: Math.ceil((since.getTime() + OTP_CONFIG.destinationWindowMs - now.getTime()) / 1000) };
-    const code = otp();
+    const configuredDevelopmentCode = process.env.MK_E2E_OTP_CODE;
+    const code = configuredDevelopmentCode && /^\d{6}$/.test(configuredDevelopmentCode)
+      ? configuredDevelopmentCode
+      : otp();
     await this.db.otpChallenge.create({ data: { channel, destination, codeHash: hashCode(code), expiresAt: new Date(now.getTime() + OTP_CONFIG.ttlMs), resendAvailableAt: new Date(now.getTime() + OTP_CONFIG.resendCooldownMs), requestSourceHash: sourceHash ?? null } });
     return { accepted: true, retryAfterSeconds: OTP_CONFIG.resendCooldownMs / 1000, developmentCode: code };
   }

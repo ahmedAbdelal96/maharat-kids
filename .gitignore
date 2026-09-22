@@ -13,6 +13,8 @@
 # testing
 /coverage
 /test-results/
+/.private/
+.eslintcache
 
 # next.js
 /.next/

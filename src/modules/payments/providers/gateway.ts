@@ -15,7 +15,9 @@ function payzatyConfig() {
   const accountNo = process.env.PAYZATY_ACCOUNT_NO;
   const secretKey = process.env.PAYZATY_SECRET_KEY;
   const baseUrl = process.env.PAYZATY_BASE_URL ?? (process.env.PAYZATY_SANDBOX === "true" ? "https://api.sandbox.payzaty.com" : "https://api.payzaty.com");
-  if (!accountNo || !secretKey || (isProduction() && process.env.PAYZATY_BASE_URL === "")) return null;
+  // Production must name the merchant-approved endpoint explicitly. The
+  // sandbox/default convenience URL is only suitable for non-production use.
+  if (!accountNo || !secretKey || (isProduction() && !process.env.PAYZATY_BASE_URL)) return null;
   return { accountNo, secretKey, baseUrl };
 }
 
