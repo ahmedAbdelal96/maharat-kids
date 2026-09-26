@@ -37,3 +37,17 @@ The private bucket/container must deny anonymous listing and GET access. Credent
 ## Migration and testing
 
 The current repository contains no private legacy files under `public/uploads`; seeded SVGs are intentional public media. Existing `.private/digital-assets` and `.private/payment-proofs` keys remain compatible with the local provider. A future object migration should be run with provider credentials, be idempotent, and preserve `Media`, `DigitalAsset`, and `BankTransferSubmission` relationships. The Playwright harness sets `MK_E2E_TEST_MODE=1` and uses disposable local storage; it never requires cloud credentials.
+
+### R2 seed/demo migration
+
+The explicit operator migration is:
+
+```powershell
+npm run seed-media:migrate-r2 -- --probe-only
+npm run seed-media:migrate-r2 -- --dry-run
+npm run seed-media:migrate-r2 -- --confirm
+```
+
+It reads `.env` explicitly, scopes public uploads to the repository-owned `demo-catalog/` and `seed-catalog/` assets, and scopes private uploads to the four `MK-DEMO-*` digital products. Public keys are deterministic (`demo-catalog/...` and `seed-catalog/...`); private PDFs retain their existing `digital-assets/...` keys. The command compares SHA-256 content, skips identical objects, updates only matching `Media`, `ProductImage`, and demo `DigitalAsset` rows, and writes a non-secret affected-record snapshot under `tmp/`. Re-running it does not create duplicates.
+
+The bundled files under `public/demo-catalog/` and `public/seed-catalog/` remain in Git as the static fallback. Runtime/user uploads continue to use the configured storage provider, and private PDFs are never made public.

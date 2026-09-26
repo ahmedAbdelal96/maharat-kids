@@ -14,3 +14,5 @@ The seed creates 40 physical products and four digital products, with explicit S
 `seed-assets/demo-catalog/product-source-map.json` records each product slug and the source image filenames used for its gallery. The competitor site was used only for broad category inspiration; no competitor copy or hotlinked media is included.
 
 Cleanup is scoped to `MK-DEMO-*` products and refuses to delete anything referenced by order history.
+
+After the demo seed exists, `npm run seed-media:migrate-r2 -- --dry-run` audits the 101 repository-owned public seed/demo images and the four protected demo PDFs before an operator runs the confirmed R2 migration. The source map and database relations remain the source of truth; R2 object keys are deterministic and the checked-in public assets remain a fallback for local/static deployments.

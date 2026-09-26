@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 import { classifyFulfillment, eligiblePaymentTypes } from "../src/modules/digital/domain/service";
 import { PrivateDigitalStorage, validatePdf } from "../src/modules/digital/infrastructure/private-storage";
@@ -47,11 +48,11 @@ test("path traversal keys are rejected", async () => {
 });
 
 test("production without durable private provider fails closed", async () => {
-  const env = process.env as Record<string, string | undefined>;
-  const previous = env.NODE_ENV;
-  env.NODE_ENV = "production";
-  try { await assert.rejects(() => new PrivateDigitalStorage().putPdf(Buffer.from("%PDF-1.4")), /DURABLE_STORAGE_REQUIRED_IN_PRODUCTION|PRIVATE_STORAGE_UNAVAILABLE/); }
-  finally { env.NODE_ENV = previous; }
+  const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
+  for (const key of ["STORAGE_PROVIDER", "PUBLIC_MEDIA_BASE_URL", "STORAGE_S3_PUBLIC_BUCKET", "STORAGE_S3_PRIVATE_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY", "STORAGE_S3_REGION", "STORAGE_S3_ENDPOINT"]) delete env[key];
+  const result = spawnSync(process.execPath, ["node_modules/tsx/dist/cli.cjs", "-e", "import { PrivateDigitalStorage } from './src/modules/digital/infrastructure/private-storage.ts'; new PrivateDigitalStorage().putPdf(Buffer.from('%PDF-1.4')).then(() => process.exit(1)).catch(error => { console.log(error instanceof Error ? error.message : String(error)); })"], { cwd: process.cwd(), encoding: "utf8", env });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /STORAGE_UNAVAILABLE|DURABLE_STORAGE_REQUIRED_IN_PRODUCTION|PRIVATE_STORAGE_UNAVAILABLE/);
 });
 
 test("digital-only orders skip address/shipping, reject COD, and grant idempotent paid access", async (t) => {

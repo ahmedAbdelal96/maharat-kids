@@ -3,9 +3,25 @@ import { access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { PrismaClient } from "@prisma/client";
+import { canonicalSeedKey } from "../src/modules/storage/domain/seed-media-migration";
 
 const db = new PrismaClient();
 const publicRoot = resolve(process.cwd(), process.env.PUBLIC_STORAGE_ROOT ?? join("public", "uploads"));
+const staticRoot = resolve(process.cwd(), "public");
+
+async function assertPublicMedia(media: { path: string; url: string }, label: string) {
+  assert.ok(media.url.startsWith("/") || media.url.startsWith("https://"), `${label} should use a public media URL`);
+  if (media.url.startsWith("https://")) {
+    const response = await fetch(media.url);
+    assert.equal(response.status, 200, `${label} public URL should resolve`);
+    await response.arrayBuffer();
+    return;
+  }
+  const canonical = canonicalSeedKey(media.path);
+  const root = canonical ? staticRoot : publicRoot;
+  const relativePath = (canonical ?? media.path).replace(/^\//, "").replace(/^uploads\//, "");
+  await access(join(root, relativePath));
+}
 
 test.after(async () => { await db.$disconnect(); });
 
@@ -18,16 +34,15 @@ test("every demo product has a real primary public media object", async () => {
   for (const product of products) {
     const image = product.images[0];
     assert.equal(image?.isPrimary, true, `${product.slug} should have a primary image`);
-    assert.ok(image.media?.url?.startsWith("/uploads/demo-catalog/"), `${product.slug} should use public demo media`);
-    await access(join(publicRoot, image.media!.path));
+    await assertPublicMedia(image.media!, product.slug);
   }
 });
 
 test("every visible category has representative public media", async () => {
   const categories = await db.category.findMany({ where: { isActive: true, showInNavigation: true, parentId: null }, include: { imageMedia: { select: { path: true, url: true } } } });
   assert.ok(categories.length > 0);
-  assert.equal(categories.filter((category) => category.imageMedia?.url?.startsWith("/uploads/demo-catalog/")).length, categories.length);
-  for (const category of categories) await access(join(publicRoot, category.imageMedia!.path));
+  assert.equal(categories.filter((category) => Boolean(category.imageMedia?.url)).length, categories.length);
+  for (const category of categories) await assertPublicMedia(category.imageMedia!, category.slug);
 });
 
 test("digital products have public covers while source PDFs remain private", async () => {

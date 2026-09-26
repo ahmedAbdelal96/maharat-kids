@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+const publicMediaPattern = (() => {
+  const value = process.env.PUBLIC_MEDIA_BASE_URL;
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+    const pathname = url.pathname.replace(/\/$/, "");
+    return { protocol: "https" as const, hostname: url.hostname, pathname: `${pathname || ""}/**` };
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig: NextConfig = {
   async headers() {
     const headers = [
@@ -27,6 +40,7 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
         pathname: "/**",
       },
+      ...(publicMediaPattern ? [publicMediaPattern] : []),
     ],
   },
 };
