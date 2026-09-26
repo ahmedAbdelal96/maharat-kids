@@ -1,6 +1,7 @@
 "use server";
 import "server-only";
 import { headers } from "next/headers";
+import { getLocale } from "next-intl/server";
 import { createHash } from "node:crypto";
 import { failure, success } from "@/core/result";
 import { AppError, ValidationError } from "@/core/errors";
@@ -14,8 +15,10 @@ export async function requestCustomerOtp(input: { destination?: string }) {
   try {
     if (!input.destination?.trim()) return failure(new ValidationError("Enter your phone number or email address."));
     const market = await resolveMarket();
-    const source = sourceHash((await headers()).get("x-forwarded-for") ?? (await headers()).get("x-real-ip"));
-    const result = await new CustomerOtpService().request(market.market, input.destination, source);
+    const requestHeaders = await headers();
+    const source = sourceHash(requestHeaders.get("x-forwarded-for") ?? requestHeaders.get("x-real-ip"));
+    const locale = (await getLocale()) === "en" ? "en" : "ar";
+    const result = await new CustomerOtpService().request(market.market, input.destination, source, locale, requestHeaders.get("x-request-id") ?? undefined);
     return success(result);
   } catch (error) { return failure(new AppError("OTP_REQUEST_FAILED", "If this address can receive a code, it will arrive shortly.", { cause: error })); }
 }

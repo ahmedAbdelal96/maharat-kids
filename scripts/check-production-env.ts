@@ -103,11 +103,22 @@ else if (parsed.values.AUTH_SECRET.length < 32) failures.push("AUTH_SECRET: INVA
 if (parsed.values.NEXT_PUBLIC_APP_URL && !/^https?:\/\/[^\s]+$/i.test(parsed.values.NEXT_PUBLIC_APP_URL)) failures.push("NEXT_PUBLIC_APP_URL: INVALID FORMAT");
 
 const storageAvailable = storageProvider === "s3" && storageFailures.length === 0;
+const emailOtpProvider = parsed.values.CUSTOMER_OTP_EMAIL_PROVIDER?.toLowerCase();
+const emailOtpMissing = emailOtpProvider === "brevo" ? [
+  !parsed.values.CUSTOMER_OTP_EMAIL_API_KEY ? "CUSTOMER_OTP_EMAIL_API_KEY" : null,
+  !parsed.values.EMAIL_FROM ? "EMAIL_FROM" : null,
+].filter((key): key is string => Boolean(key)) : [];
+const emailOtpAvailable = emailOtpProvider === "brevo" && emailOtpMissing.length === 0;
+const smsOtpProvider = parsed.values.CUSTOMER_OTP_SMS_PROVIDER?.toLowerCase();
+const emailOtpStatus = emailOtpAvailable ? `AVAILABLE (${emailOtpProvider})` : "UNAVAILABLE";
+const smsOtpStatus = smsOtpProvider === "console" ? "UNAVAILABLE (development provider disabled)" : smsOtpProvider ? `UNAVAILABLE (${smsOtpProvider} not registered)` : "UNAVAILABLE";
 console.log("Production core environment validation: " + (failures.length ? "FAIL" : "PASS"));
 console.log(`APP: NEXT_PUBLIC_APP_URL ........ ${status("NEXT_PUBLIC_APP_URL", parsed.values.NEXT_PUBLIC_APP_URL)}`);
 console.log(`MARKET: MARKET_GEO_PROVIDER ...... ${parsed.values.MARKET_GEO_PROVIDER || "MISSING"}`);
 console.log(`MARKET: Development fallback ...... ${parsed.values.MARKET_DEVELOPMENT_FALLBACK ? "INVALID" : "not enabled"}`);
 console.log(`Optional capabilities: Object storage ........ ${storageAvailable ? "AVAILABLE" : "UNAVAILABLE"}`);
+console.log(`OTP capabilities: Egypt email OTP ........ ${emailOtpStatus}`);
+console.log(`OTP capabilities: Saudi SMS OTP .......... ${smsOtpStatus}`);
 console.log(`STORAGE: STORAGE_PROVIDER .......... ${parsed.values.STORAGE_PROVIDER || "disabled (implicit)"}`);
 for (const key of ["PUBLIC_MEDIA_BASE_URL", "STORAGE_S3_PUBLIC_BUCKET", "STORAGE_S3_PRIVATE_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY", "STORAGE_S3_REGION", "STORAGE_S3_ENDPOINT"]) console.log(`STORAGE: ${key.padEnd(30, ".")} ${status(key, parsed.values[key])}`);
 for (const key of ["DATABASE_URL", "AUTH_SECRET"]) console.log(`CORE: ${key.padEnd(34, ".")} ${status(key, parsed.values[key])}`);
@@ -126,4 +137,8 @@ if (failures.length) {
     console.log("Missing or invalid optional storage values:");
     for (const failure of storageFailures) console.log(`- ${failure}`);
   }
+}
+if (!emailOtpAvailable && emailOtpMissing.length) {
+  console.log("Egypt email OTP is unavailable because optional configuration is incomplete:");
+  for (const key of emailOtpMissing) console.log(`- ${key}`);
 }

@@ -49,13 +49,13 @@ stores the values.
 | `STORAGE_S3_SECRET_ACCESS_KEY` | Required for `s3` | Yes | Cloudflare R2 / S3 |
 | `STORAGE_S3_REGION` | Required for `s3` | No | Cloudflare R2 / S3 |
 | `STORAGE_S3_ENDPOINT` | Provider-dependent | No | Cloudflare R2 / S3; required for compatible non-AWS endpoints |
-| `CUSTOMER_OTP_EMAIL_PROVIDER` | Integration-dependent | No | Egypt email OTP provider |
-| `CUSTOMER_OTP_EMAIL_API_URL` | Integration-dependent | No | Egypt email OTP provider |
-| `CUSTOMER_OTP_EMAIL_API_KEY` | Integration-dependent | Yes | Egypt email OTP provider |
-| `EMAIL_FROM` | Integration-dependent | No | operator / email provider |
-| `CUSTOMER_OTP_SMS_PROVIDER` | Integration-dependent | No | Saudi SMS OTP provider |
+| `CUSTOMER_OTP_EMAIL_PROVIDER` | Optional | No | Use `brevo` when Egypt email OTP is enabled |
+| `CUSTOMER_OTP_EMAIL_API_URL` | Optional | No | Defaults to Brevo transactional email endpoint |
+| `CUSTOMER_OTP_EMAIL_API_KEY` | Required for Brevo | Yes | Brevo server-side API key |
+| `EMAIL_FROM` | Required for Brevo | No | Verified sender used by the email provider |
+| `CUSTOMER_OTP_SMS_PROVIDER` | Optional | No | Saudi SMS provider boundary; no production adapter is registered yet |
 | `CUSTOMER_OTP_SMS_API_URL` | Integration-dependent | No | Saudi SMS OTP provider |
-| `CUSTOMER_OTP_SMS_API_KEY` | Integration-dependent | Yes | Saudi SMS OTP provider |
+| `CUSTOMER_OTP_SMS_API_KEY` | Provider-dependent | Yes | Future Saudi SMS provider |
 | `PAYZATY_ACCOUNT_NO` | Integration-dependent | Yes | Payzaty |
 | `PAYZATY_SECRET_KEY` | Integration-dependent | Yes | Payzaty |
 | `PAYZATY_BASE_URL` | Integration-dependent | No | Payzaty approved production endpoint |

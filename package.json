@@ -19,6 +19,7 @@
     "test:mk09": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk09-orders.test.ts",
     "test:mk10": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk10-storage.test.ts",
     "test:storage": "node node_modules/tsx/dist/cli.cjs --test tests/storage-capability.test.ts",
+    "test:otp": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/otp-providers.test.ts",
     "test:mk11": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk11-production.test.ts",
     "test:demo-visual": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/demo-visual.test.ts",
     "storage:migrate": "node --env-file=.env node_modules/tsx/dist/cli.cjs scripts/migrate-storage.ts",
