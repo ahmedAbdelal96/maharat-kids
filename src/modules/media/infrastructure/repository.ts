@@ -3,11 +3,12 @@ import "server-only";
 import { PrismaClient, type Media as PrismaMedia } from "@prisma/client";
 import { getPrismaClient } from "@/database/prisma";
 import type { MediaAsset, MediaId } from "../types";
+import { resolvePublicMediaUrl } from "../domain/public-url";
 
 function toMedia(record: PrismaMedia): MediaAsset {
   return {
     id: record.id as MediaId,
-    url: record.url,
+    url: resolvePublicMediaUrl(record.url),
     filename: record.filename,
     mimeType: record.mimeType,
     size: record.size,

@@ -3,13 +3,14 @@ import "server-only";
 import { Prisma, PrismaClient, type ReviewStatus } from "@prisma/client";
 import { getPrismaClient } from "@/database/prisma";
 import type { AdminReviewFilters, AdminReviewsPage, CustomerReviewsPage, PublicReview, PublicReviewPage, Review, ReviewEligibility, ToReviewItem } from "../types";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 
 const paidStatuses = ["PAID", "PARTIALLY_REFUNDED", "REFUNDED"] as const;
 const qualifyingOrderStatuses = ["DELIVERED", "COMPLETED"] as const;
 const activeReturnStatuses = ["APPROVED", "RETURNING", "RECEIVED", "COMPLETED"] as const;
 
 function imageUrl(images: Array<{ url: string | null; media: { url: string } | null }>) {
-  return images[0]?.media?.url ?? images[0]?.url ?? null;
+  return resolvePublicMediaUrl(images[0]?.media?.url ?? images[0]?.url);
 }
 
 function toReview(record: { id: string; userId: string; productId: string; orderItemId: string; rating: number; comment: string | null; status: ReviewStatus; customerVisibleModerationReason: string | null; moderatedAt: Date | null; createdAt: Date; updatedAt: Date; product?: { name: string; slug: string; images: Array<{ url: string | null; media: { url: string } | null }> } | null; orderItem?: { order: { orderNumber: string; status?: string } } | null }): Review {

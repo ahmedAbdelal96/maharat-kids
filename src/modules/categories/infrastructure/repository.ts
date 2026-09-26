@@ -4,6 +4,7 @@ import { PrismaClient, type Category as PrismaCategory } from "@prisma/client";
 import { getLocale } from "next-intl/server";
 import { getPrismaClient } from "@/database/prisma";
 import type { Category, CategoryId, CreateCategoryInput, UpdateCategoryInput } from "../types";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 
 type CategoryRecord = PrismaCategory & {
   _count?: { products: number; children: number };
@@ -21,7 +22,7 @@ function toCategory(record: CategoryRecord, children: Category[] = [], locale: "
     parentId: record.parentId as CategoryId | null,
     description: translation?.description ?? record.description,
     imageMediaId: record.imageMediaId,
-    imageUrl: record.imageMedia?.url ?? record.imageUrl,
+    imageUrl: resolvePublicMediaUrl(record.imageMedia?.url ?? record.imageUrl),
     isActive: record.isActive,
     showInNavigation: record.showInNavigation,
     sortOrder: record.sortOrder,

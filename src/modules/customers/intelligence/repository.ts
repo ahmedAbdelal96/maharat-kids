@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { getPrismaClient } from "@/database/prisma";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 import type { UserId } from "@/modules/identity/types";
 
 import type { CustomerAddress } from "../types";
@@ -173,14 +174,14 @@ export class PrismaCustomerIntelligenceRepository implements CustomerIntelligenc
       const product = productMap.get(item.productId);
       const unitPrice = product?.price ?? item.unitPrice;
       const isAvailable = product ? product.status === "ACTIVE" && (!product.trackInventory || product.stockQuantity >= item.quantity) : false;
-      return { id: item.id, productId: item.productId, name: product?.name ?? item.name, imageUrl: product?.images[0]?.media?.url ?? product?.images[0]?.url ?? item.imageUrl, quantity: item.quantity, unitPrice: money(unitPrice), lineTotal: money(new Prisma.Decimal(unitPrice).mul(item.quantity)), isAvailable };
+      return { id: item.id, productId: item.productId, name: product?.name ?? item.name, imageUrl: resolvePublicMediaUrl(product?.images[0]?.media?.url ?? product?.images[0]?.url ?? item.imageUrl), quantity: item.quantity, unitPrice: money(unitPrice), lineTotal: money(new Prisma.Decimal(unitPrice).mul(item.quantity)), isAvailable };
     }) ?? [];
     const customerCart: Customer360Cart = { items: cartItems, total: money(cartItems.reduce((sum, item) => sum.add(item.lineTotal), new Prisma.Decimal(0))) };
 
     const customerFavorites: Customer360Favorite[] = favorites.map((favorite) => {
       const product = favorite.product;
       const available = product.status === "ACTIVE" && (!product.trackInventory || product.stockQuantity > 0);
-      return { id: favorite.id, productId: product.id, name: product.name, imageUrl: product.images[0]?.media?.url ?? product.images[0]?.url ?? null, price: money(product.price), status: product.status, isAvailable: available, createdAt: favorite.createdAt };
+      return { id: favorite.id, productId: product.id, name: product.name, imageUrl: resolvePublicMediaUrl(product.images[0]?.media?.url ?? product.images[0]?.url), price: money(product.price), status: product.status, isAvailable: available, createdAt: favorite.createdAt };
     });
 
     const totalSpent = money(paidSum._sum.total);

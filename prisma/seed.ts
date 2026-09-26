@@ -20,10 +20,10 @@ function seedSvg(_label: string, start: string, end: string): string {
 
 async function ensureSeedMedia(kind: SeedMediaKind, key: string, label: string, start: string, end: string) {
   const filename = `seed-${key}.svg`;
-  const path = `uploads/${kind}/${filename}`;
+  const path = `seed-catalog/${kind}/${filename}`;
   const absolutePath = join(process.cwd(), "public", ...path.split("/"));
   const contents = seedSvg(label, start, end);
-  await mkdir(join(process.cwd(), "public", "uploads", kind), { recursive: true });
+  await mkdir(join(process.cwd(), "public", "seed-catalog", kind), { recursive: true });
   await writeFile(absolutePath, contents, "utf8");
 
   const existing = await prisma.media.findFirst({ where: { path } });

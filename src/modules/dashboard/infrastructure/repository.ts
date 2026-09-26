@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma, PrismaClient } from "@prisma/client";
 import { getPrismaClient } from "@/database/prisma";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 import {
   LOW_STOCK_THRESHOLD,
   RECENT_CUSTOMER_DAYS,
@@ -213,7 +214,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       name: product.name,
       sku: product.sku,
       stockQuantity: product.stockQuantity,
-      imageUrl: product.images[0]?.media?.url ?? product.images[0]?.url ?? null,
+      imageUrl: resolvePublicMediaUrl(product.images[0]?.media?.url ?? product.images[0]?.url),
     }));
 
     const salesByDate = new Map(salesRows.map((row) => [row.date.toISOString().slice(0, 10), row]));

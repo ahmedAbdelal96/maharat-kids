@@ -8,6 +8,7 @@ import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from "@/modules/audit/constants";
 import { PrismaAuditLogRepository } from "@/modules/audit/infrastructure/repository";
 import type { AuditMutationContext } from "@/modules/audit/types";
 import type { InventoryItem, InventoryItemId, AdjustInventoryInput, InventoryPage, InventoryProduct, InventoryQuery } from "../types";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 
 export interface InventoryItemRepository {
   findById(id: InventoryItemId): Promise<InventoryItem | null>;
@@ -20,7 +21,7 @@ export interface InventoryRepository {
 }
 
 function imageUrl(product: { images: Array<{ url: string | null; media: { url: string } | null }> }) {
-  return product.images[0]?.media?.url ?? product.images[0]?.url ?? null;
+  return resolvePublicMediaUrl(product.images[0]?.media?.url ?? product.images[0]?.url);
 }
 
 function toProduct(record: {

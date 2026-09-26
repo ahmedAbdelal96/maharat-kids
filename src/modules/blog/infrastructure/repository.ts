@@ -1,6 +1,7 @@
 import "server-only";
 import { PrismaClient, type BlogPostStatus } from "@prisma/client";
 import { getPrismaClient } from "@/database/prisma";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 import { sanitizeBlogHtml } from "../domain/sanitize";
 import type { BlogCategory, BlogCategoryInput, BlogPost, BlogPostInput, BlogPostPage } from "../types";
 
@@ -10,7 +11,7 @@ const include = { coverMedia: { select: { url: true } }, category: { select: cat
 type RecordWithRelations = Awaited<ReturnType<PrismaClient["blogPost"]["findFirst"]>> & { coverMedia?: { url: string } | null; category?: BlogCategory | null; products: { productId: string }[]; storeCategories: { categoryId: string }[] };
 
 function toPost(record: RecordWithRelations): BlogPost {
-  return { id: record.id, titleAr: record.titleAr, titleEn: record.titleEn, excerptAr: record.excerptAr, excerptEn: record.excerptEn, contentAr: record.contentAr, contentEn: record.contentEn, slug: record.slug, status: record.status, coverMediaId: record.coverMediaId, coverUrl: record.coverMedia?.url ?? null, seoTitleAr: record.seoTitleAr, seoTitleEn: record.seoTitleEn, seoDescriptionAr: record.seoDescriptionAr, seoDescriptionEn: record.seoDescriptionEn, publishedAt: record.publishedAt?.toISOString() ?? null, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString(), category: record.category ?? null, productIds: record.products.map((item) => item.productId), storeCategoryIds: record.storeCategories.map((item) => item.categoryId) };
+  return { id: record.id, titleAr: record.titleAr, titleEn: record.titleEn, excerptAr: record.excerptAr, excerptEn: record.excerptEn, contentAr: record.contentAr, contentEn: record.contentEn, slug: record.slug, status: record.status, coverMediaId: record.coverMediaId, coverUrl: resolvePublicMediaUrl(record.coverMedia?.url), seoTitleAr: record.seoTitleAr, seoTitleEn: record.seoTitleEn, seoDescriptionAr: record.seoDescriptionAr, seoDescriptionEn: record.seoDescriptionEn, publishedAt: record.publishedAt?.toISOString() ?? null, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString(), category: record.category ?? null, productIds: record.products.map((item) => item.productId), storeCategoryIds: record.storeCategories.map((item) => item.categoryId) };
 }
 
 export class BlogRepository {

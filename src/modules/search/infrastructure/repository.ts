@@ -8,6 +8,7 @@ import { getApprovedRatingSummaries } from "@/modules/reviews/infrastructure/rat
 import { normalizeSearchQuery, searchRank } from "../domain/normalization";
 import { resolveMarket } from "@/modules/market/server/resolver";
 import type { SearchSuggestionCategory, SearchSuggestionProduct, SearchSuggestions } from "../types";
+import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 
 type ProductSuggestionRecord = {
   id: string;
@@ -28,7 +29,7 @@ export interface SearchRepository {
 }
 
 function imageUrl(images: ProductSuggestionRecord["images"]): string | null {
-  return images[0]?.media?.url ?? images[0]?.url ?? null;
+  return resolvePublicMediaUrl(images[0]?.media?.url ?? images[0]?.url);
 }
 
 function toAvailability(product: Pick<ProductSuggestionRecord, "trackInventory" | "stockQuantity">): SearchSuggestionProduct["availability"] {
