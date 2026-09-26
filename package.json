@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "env:check:production": "node node_modules/tsx/dist/cli.cjs scripts/check-production-env.ts",
     "start": "next start",
     "lint": "eslint src prisma --ext .js,.mjs,.ts,.tsx --cache",
     "test:mk01": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk01-runtime.test.ts && node --env-file=.env node_modules/tsx/dist/cli.cjs --test tests/mk01-market-money.test.ts && node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk01-acceptance.test.ts",
@@ -17,7 +18,7 @@
     "test:mk08": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk08-blog.test.ts",
     "test:mk09": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk09-orders.test.ts",
     "test:mk10": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk10-storage.test.ts",
-    "test:mk11": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk11-production.test.ts",
+    "test:mk11": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk11-production.test.ts",
     "test:demo-visual": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/demo-visual.test.ts",
     "storage:migrate": "node --env-file=.env node_modules/tsx/dist/cli.cjs scripts/migrate-storage.ts",
     "seed:demo-catalog": "node --env-file=.env node_modules/tsx/dist/cli.cjs scripts/seed-demo-catalog.ts",

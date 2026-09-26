@@ -4,7 +4,26 @@ import { z } from "zod";
 
 import { environmentNames } from "@/core/constants";
 
-const envSchema = z.object({
+export const PRODUCTION_CRITICAL_ENV_NAMES = [
+  "NEXT_PUBLIC_APP_URL",
+  "DATABASE_URL",
+  "AUTH_SECRET",
+  "STORAGE_PROVIDER",
+  "PUBLIC_MEDIA_BASE_URL",
+  "STORAGE_S3_PUBLIC_BUCKET",
+  "STORAGE_S3_PRIVATE_BUCKET",
+  "STORAGE_S3_ACCESS_KEY_ID",
+  "STORAGE_S3_SECRET_ACCESS_KEY",
+  "STORAGE_S3_REGION",
+] as const;
+
+const PLACEHOLDER_PATTERN = /<REAL_|<YOUR_|YOUR_|CHANGE_ME|TODO|example-key|example-secret/i;
+
+export function isObviousPlaceholder(value: string): boolean {
+  return PLACEHOLDER_PATTERN.test(value);
+}
+
+export const envSchema = z.object({
   NODE_ENV: z.enum(environmentNames).default("development"),
   NEXT_PUBLIC_APP_URL: z.string().url(),
   DATABASE_URL: z.string().min(1),
@@ -74,6 +93,15 @@ const envSchema = z.object({
   }
   if (value.MARKET_GEO_PROVIDER === "trusted_proxy" && !value.MARKET_TRUSTED_PROXY_SECRET) {
     context.addIssue({ code: "custom", path: ["MARKET_TRUSTED_PROXY_SECRET"], message: "MARKET_TRUSTED_PROXY_SECRET is required in production when MARKET_GEO_PROVIDER=trusted_proxy." });
+  }
+  if (process.env.MARKET_DEVELOPMENT_FALLBACK) {
+    context.addIssue({ code: "custom", path: ["MARKET_DEVELOPMENT_FALLBACK"], message: "MARKET_DEVELOPMENT_FALLBACK must not be configured in production." });
+  }
+  for (const key of PRODUCTION_CRITICAL_ENV_NAMES) {
+    const configured = value[key];
+    if (typeof configured === "string" && isObviousPlaceholder(configured)) {
+      context.addIssue({ code: "custom", path: [key], message: `${key} contains an obvious placeholder value.` });
+    }
   }
 });
 

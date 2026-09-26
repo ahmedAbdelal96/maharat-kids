@@ -21,6 +21,8 @@ function runProduction(script: string, overrides: Record<string, string> = {}) {
       STORAGE_S3_PRIVATE_BUCKET: "private-assets",
       STORAGE_S3_ACCESS_KEY_ID: "access-key-fixture",
       STORAGE_S3_SECRET_ACCESS_KEY: "secret-key-fixture",
+      STORAGE_S3_REGION: "auto",
+      STORAGE_S3_ENDPOINT: "https://s3.example.test",
       MARKET_TRUSTED_PROXY_SECRET: "proxy-secret-that-is-long-enough-123456",
       ...overrides,
     },

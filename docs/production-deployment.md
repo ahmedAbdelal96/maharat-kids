@@ -25,6 +25,48 @@ both S3 buckets and credentials, and `PUBLIC_MEDIA_BASE_URL`. For Vercel, use
 `trusted_proxy`, `MARKET_TRUSTED_PROXY_SECRET` remains mandatory.
 Never put credentials in `NEXT_PUBLIC_*` variables or source control.
 
+### Vercel Production Environment Variables checklist
+
+Enter these names under **Vercel → Project → Settings → Environment Variables → Production**.
+Values marked sensitive must come from the owning provider or operator; this repository never
+stores the values.
+
+| Name | Required? | Sensitive? | Source |
+| --- | --- | --- | --- |
+| `NODE_ENV` | Yes | No | Vercel configuration |
+| `NEXT_PUBLIC_APP_URL` | Yes | No | operator / deployment URL |
+| `DATABASE_URL` | Yes | Yes | PostgreSQL provider; use its serverless/pooling URL when offered |
+| `AUTH_SECRET` | Yes | Yes | operator-generated production secret |
+| `MARKET_GEO_PROVIDER` | Yes | No | Vercel configuration (`vercel`) |
+| `MARKET_TRUSTED_COUNTRY_HEADER` | Recommended | No | Vercel configuration (`x-vercel-ip-country`) |
+| `STORAGE_PROVIDER` | Yes | No | operator (`s3`) |
+| `PUBLIC_MEDIA_BASE_URL` | Yes | No | Cloudflare R2 / S3 public media host |
+| `STORAGE_S3_PUBLIC_BUCKET` | Yes | No | Cloudflare R2 / S3 |
+| `STORAGE_S3_PRIVATE_BUCKET` | Yes | No | Cloudflare R2 / S3 |
+| `STORAGE_S3_ACCESS_KEY_ID` | Yes | Yes | Cloudflare R2 / S3 |
+| `STORAGE_S3_SECRET_ACCESS_KEY` | Yes | Yes | Cloudflare R2 / S3 |
+| `STORAGE_S3_REGION` | Yes | No | Cloudflare R2 / S3 |
+| `STORAGE_S3_ENDPOINT` | Provider-dependent | No | Cloudflare R2 / S3; required for compatible non-AWS endpoints |
+| `CUSTOMER_OTP_EMAIL_PROVIDER` | Integration-dependent | No | Egypt email OTP provider |
+| `CUSTOMER_OTP_EMAIL_API_URL` | Integration-dependent | No | Egypt email OTP provider |
+| `CUSTOMER_OTP_EMAIL_API_KEY` | Integration-dependent | Yes | Egypt email OTP provider |
+| `EMAIL_FROM` | Integration-dependent | No | operator / email provider |
+| `CUSTOMER_OTP_SMS_PROVIDER` | Integration-dependent | No | Saudi SMS OTP provider |
+| `CUSTOMER_OTP_SMS_API_URL` | Integration-dependent | No | Saudi SMS OTP provider |
+| `CUSTOMER_OTP_SMS_API_KEY` | Integration-dependent | Yes | Saudi SMS OTP provider |
+| `PAYZATY_ACCOUNT_NO` | Integration-dependent | Yes | Payzaty |
+| `PAYZATY_SECRET_KEY` | Integration-dependent | Yes | Payzaty |
+| `PAYZATY_BASE_URL` | Integration-dependent | No | Payzaty approved production endpoint |
+| `PAYZATY_STATUS_ENDPOINT` | Integration-dependent | No | Payzaty approved production endpoint |
+| `SPL_PROVIDER` | Integration-dependent | No | SPL |
+| `SPL_API_BASE_URL` | Integration-dependent | No | SPL |
+| `SPL_API_KEY` | Integration-dependent | Yes | SPL |
+
+`SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are one-time bootstrap inputs, not steady-state
+runtime requirements. Supply them only for the initial bootstrap, then remove or rotate them in
+Vercel. `SEED_DEMO_CATALOG` must be absent or `false` in Production. `MARKET_TRUSTED_PROXY_SECRET`
+is not required for Vercel mode and must not be used as a substitute for Vercel Geo.
+
 ### Direct Vercel variable set
 
 Configure these names in Vercel's Production Environment. Values shown with placeholders are
