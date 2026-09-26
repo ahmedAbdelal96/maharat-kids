@@ -8,16 +8,11 @@ export const PRODUCTION_CRITICAL_ENV_NAMES = [
   "NEXT_PUBLIC_APP_URL",
   "DATABASE_URL",
   "AUTH_SECRET",
-  "STORAGE_PROVIDER",
-  "PUBLIC_MEDIA_BASE_URL",
-  "STORAGE_S3_PUBLIC_BUCKET",
-  "STORAGE_S3_PRIVATE_BUCKET",
-  "STORAGE_S3_ACCESS_KEY_ID",
-  "STORAGE_S3_SECRET_ACCESS_KEY",
-  "STORAGE_S3_REGION",
 ] as const;
 
 const PLACEHOLDER_PATTERN = /<REAL_|<YOUR_|YOUR_|CHANGE_ME|TODO|example-key|example-secret/i;
+const emptyToUndefined = (value: unknown) => value === "" ? undefined : value;
+const optionalEnvString = () => z.preprocess(emptyToUndefined, z.string().min(1).optional());
 
 export function isObviousPlaceholder(value: string): boolean {
   return PLACEHOLDER_PATTERN.test(value);
@@ -52,19 +47,19 @@ export const envSchema = z.object({
   MARKET_GEO_PROVIDER: z.enum(["vercel", "trusted_proxy"]).default("trusted_proxy"),
   MARKET_TRUSTED_COUNTRY_HEADER: z.string().regex(/^[a-z0-9-]{1,64}$/i).default("x-vercel-ip-country"),
   MARKET_TRUSTED_PROXY_HEADER: z.string().regex(/^[a-z0-9-]{1,64}$/i).default("x-market-trust-token"),
-  MARKET_TRUSTED_PROXY_SECRET: z.string().min(32).optional(),
+  MARKET_TRUSTED_PROXY_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
   MARKET_DEVELOPMENT_FALLBACK: z.enum(["SAUDI_ARABIA", "EGYPT"]).default("SAUDI_ARABIA"),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().max(25 * 1024 * 1024).default(5 * 1024 * 1024),
-  STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
-  PUBLIC_MEDIA_BASE_URL: z.string().url().optional(),
-  PUBLIC_STORAGE_ROOT: z.string().min(1).optional(),
-  PRIVATE_STORAGE_ROOT: z.string().min(1).optional(),
-  STORAGE_S3_ENDPOINT: z.string().url().optional(),
-  STORAGE_S3_REGION: z.string().min(1).default("auto"),
-  STORAGE_S3_PUBLIC_BUCKET: z.string().min(1).optional(),
-  STORAGE_S3_PRIVATE_BUCKET: z.string().min(1).optional(),
-  STORAGE_S3_ACCESS_KEY_ID: z.string().min(1).optional(),
-  STORAGE_S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  STORAGE_PROVIDER: z.preprocess(emptyToUndefined, z.enum(["disabled", "local", "s3"]).optional()),
+  PUBLIC_MEDIA_BASE_URL: optionalEnvString(),
+  PUBLIC_STORAGE_ROOT: optionalEnvString(),
+  PRIVATE_STORAGE_ROOT: optionalEnvString(),
+  STORAGE_S3_ENDPOINT: optionalEnvString(),
+  STORAGE_S3_REGION: z.preprocess(emptyToUndefined, z.string().min(1).default("auto")),
+  STORAGE_S3_PUBLIC_BUCKET: optionalEnvString(),
+  STORAGE_S3_PRIVATE_BUCKET: optionalEnvString(),
+  STORAGE_S3_ACCESS_KEY_ID: optionalEnvString(),
+  STORAGE_S3_SECRET_ACCESS_KEY: optionalEnvString(),
 }).superRefine((value, context) => {
   const productionBuild = process.env.NEXT_PHASE === "phase-production-build";
   // The isolated Playwright harness intentionally runs the built app with
@@ -78,20 +73,11 @@ export const envSchema = z.object({
   }
   if (/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(value.DATABASE_URL)) {
     context.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "Production DATABASE_URL cannot point to localhost." });
+ }
+  if (value.STORAGE_PROVIDER === "local") {
+    context.addIssue({ code: "custom", path: ["STORAGE_PROVIDER"], message: "Production local storage is not supported." });
   }
-  if (value.STORAGE_PROVIDER !== "s3") {
-    context.addIssue({ code: "custom", path: ["STORAGE_PROVIDER"], message: "Production requires STORAGE_PROVIDER=s3." });
-  }
-  for (const [key, configured] of [
-    ["PUBLIC_MEDIA_BASE_URL", value.PUBLIC_MEDIA_BASE_URL],
-    ["STORAGE_S3_PUBLIC_BUCKET", value.STORAGE_S3_PUBLIC_BUCKET],
-    ["STORAGE_S3_PRIVATE_BUCKET", value.STORAGE_S3_PRIVATE_BUCKET],
-    ["STORAGE_S3_ACCESS_KEY_ID", value.STORAGE_S3_ACCESS_KEY_ID],
-    ["STORAGE_S3_SECRET_ACCESS_KEY", value.STORAGE_S3_SECRET_ACCESS_KEY],
-  ] as const) {
-    if (!configured) context.addIssue({ code: "custom", path: [key], message: `${key} is required in production.` });
-  }
-  if (value.MARKET_GEO_PROVIDER === "trusted_proxy" && !value.MARKET_TRUSTED_PROXY_SECRET) {
+ if (value.MARKET_GEO_PROVIDER === "trusted_proxy" && !value.MARKET_TRUSTED_PROXY_SECRET) {
     context.addIssue({ code: "custom", path: ["MARKET_TRUSTED_PROXY_SECRET"], message: "MARKET_TRUSTED_PROXY_SECRET is required in production when MARKET_GEO_PROVIDER=trusted_proxy." });
   }
   if (process.env.MARKET_DEVELOPMENT_FALLBACK) {

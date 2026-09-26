@@ -19,8 +19,10 @@ external accounts or claim that third-party credentials are active.
 ## Environment contract
 
 Copy the variable names from `.env.example` into the deployment secret manager. Production requires
-an HTTPS `NEXT_PUBLIC_APP_URL`, a non-localhost `DATABASE_URL`, `AUTH_SECRET`, `STORAGE_PROVIDER=s3`,
-both S3 buckets and credentials, and `PUBLIC_MEDIA_BASE_URL`. For Vercel, use
+an HTTPS `NEXT_PUBLIC_APP_URL`, a non-localhost `DATABASE_URL`, `AUTH_SECRET`, and
+`MARKET_GEO_PROVIDER=vercel`. Object storage is optional: use `STORAGE_PROVIDER=disabled` for a
+safe degraded storefront, or configure `STORAGE_PROVIDER=s3` with both S3 buckets, credentials,
+and `PUBLIC_MEDIA_BASE_URL`. For Vercel, use
 `NEXT_PUBLIC_APP_URL=https://maharat-kids.vercel.app` and `MARKET_GEO_PROVIDER=vercel`. For
 `trusted_proxy`, `MARKET_TRUSTED_PROXY_SECRET` remains mandatory.
 Never put credentials in `NEXT_PUBLIC_*` variables or source control.
@@ -39,13 +41,13 @@ stores the values.
 | `AUTH_SECRET` | Yes | Yes | operator-generated production secret |
 | `MARKET_GEO_PROVIDER` | Yes | No | Vercel configuration (`vercel`) |
 | `MARKET_TRUSTED_COUNTRY_HEADER` | Recommended | No | Vercel configuration (`x-vercel-ip-country`) |
-| `STORAGE_PROVIDER` | Yes | No | operator (`s3`) |
-| `PUBLIC_MEDIA_BASE_URL` | Yes | No | Cloudflare R2 / S3 public media host |
-| `STORAGE_S3_PUBLIC_BUCKET` | Yes | No | Cloudflare R2 / S3 |
-| `STORAGE_S3_PRIVATE_BUCKET` | Yes | No | Cloudflare R2 / S3 |
-| `STORAGE_S3_ACCESS_KEY_ID` | Yes | Yes | Cloudflare R2 / S3 |
-| `STORAGE_S3_SECRET_ACCESS_KEY` | Yes | Yes | Cloudflare R2 / S3 |
-| `STORAGE_S3_REGION` | Yes | No | Cloudflare R2 / S3 |
+| `STORAGE_PROVIDER` | Optional | No | operator (`disabled` or `s3`) |
+| `PUBLIC_MEDIA_BASE_URL` | Required for `s3` | No | Cloudflare R2 / S3 public media host |
+| `STORAGE_S3_PUBLIC_BUCKET` | Required for `s3` | No | Cloudflare R2 / S3 |
+| `STORAGE_S3_PRIVATE_BUCKET` | Required for `s3` | No | Cloudflare R2 / S3 |
+| `STORAGE_S3_ACCESS_KEY_ID` | Required for `s3` | Yes | Cloudflare R2 / S3 |
+| `STORAGE_S3_SECRET_ACCESS_KEY` | Required for `s3` | Yes | Cloudflare R2 / S3 |
+| `STORAGE_S3_REGION` | Required for `s3` | No | Cloudflare R2 / S3 |
 | `STORAGE_S3_ENDPOINT` | Provider-dependent | No | Cloudflare R2 / S3; required for compatible non-AWS endpoints |
 | `CUSTOMER_OTP_EMAIL_PROVIDER` | Integration-dependent | No | Egypt email OTP provider |
 | `CUSTOMER_OTP_EMAIL_API_URL` | Integration-dependent | No | Egypt email OTP provider |
@@ -92,6 +94,10 @@ PUBLIC_MEDIA_BASE_URL=https://<public-media-host>
 `STORAGE_S3_ENDPOINT` may be omitted for providers using the AWS default endpoint. In Vercel mode,
 `MARKET_TRUSTED_PROXY_SECRET` is intentionally not required; it remains mandatory for
 `MARKET_GEO_PROVIDER=trusted_proxy`.
+
+When object storage is disabled or incomplete, the storefront remains available, while media
+uploads, protected PDF downloads, and bank-receipt uploads fail closed with a controlled
+unavailable response. Production never falls back to the local filesystem or ephemeral disk.
 
 External provider variables are intentionally explicit: Payzaty requires the merchant account,
 secret, approved base URL, and status endpoint; Saudi SMS OTP, Egypt email OTP, and SPL require

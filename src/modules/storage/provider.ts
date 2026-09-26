@@ -16,17 +16,86 @@ import type { ObjectStorage, StorageVisibility, StoredObject } from "./types";
 // and never exposes secrets to client bundles.
 const storageEnv = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER === "s3" ? "s3" : "local",
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER,
   PUBLIC_MEDIA_BASE_URL: process.env.PUBLIC_MEDIA_BASE_URL,
   PUBLIC_STORAGE_ROOT: process.env.PUBLIC_STORAGE_ROOT,
   PRIVATE_STORAGE_ROOT: process.env.PRIVATE_STORAGE_ROOT,
   STORAGE_S3_ENDPOINT: process.env.STORAGE_S3_ENDPOINT,
-  STORAGE_S3_REGION: process.env.STORAGE_S3_REGION ?? "auto",
+  STORAGE_S3_REGION: process.env.STORAGE_S3_REGION,
   STORAGE_S3_PUBLIC_BUCKET: process.env.STORAGE_S3_PUBLIC_BUCKET,
   STORAGE_S3_PRIVATE_BUCKET: process.env.STORAGE_S3_PRIVATE_BUCKET,
   STORAGE_S3_ACCESS_KEY_ID: process.env.STORAGE_S3_ACCESS_KEY_ID,
   STORAGE_S3_SECRET_ACCESS_KEY: process.env.STORAGE_S3_SECRET_ACCESS_KEY,
 };
+
+const requiredS3Keys = [
+  "PUBLIC_MEDIA_BASE_URL",
+  "STORAGE_S3_PUBLIC_BUCKET",
+  "STORAGE_S3_PRIVATE_BUCKET",
+  "STORAGE_S3_ACCESS_KEY_ID",
+  "STORAGE_S3_SECRET_ACCESS_KEY",
+  "STORAGE_S3_REGION",
+] as const;
+
+export type StorageCapability =
+  | { status: "available"; provider: "s3" | "local" }
+  | { status: "unavailable"; reason: "not-configured" | "incomplete" | "production-local-disabled"; missing: string[] };
+
+function validHttpsUrl(value: string | undefined) {
+  if (!value) return false;
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+}
+
+function getMissingS3Configuration() {
+  const missing: string[] = requiredS3Keys.filter((key) => !storageEnv[key]);
+  if (storageEnv.PUBLIC_MEDIA_BASE_URL && !validHttpsUrl(storageEnv.PUBLIC_MEDIA_BASE_URL)) missing.push("PUBLIC_MEDIA_BASE_URL");
+  if (storageEnv.STORAGE_S3_ENDPOINT && !validHttpsUrl(storageEnv.STORAGE_S3_ENDPOINT)) missing.push("STORAGE_S3_ENDPOINT");
+  return [...new Set(missing)];
+}
+
+export function getStorageCapability(): StorageCapability {
+  if (storageEnv.STORAGE_PROVIDER === "s3") {
+    const missing = getMissingS3Configuration();
+    return missing.length ? { status: "unavailable", reason: "incomplete", missing } : { status: "available", provider: "s3" };
+  }
+  if (storageEnv.STORAGE_PROVIDER === "disabled") {
+    return { status: "unavailable", reason: "not-configured", missing: requiredS3Keys.slice() };
+  }
+  if (storageEnv.NODE_ENV === "production") {
+    return { status: "unavailable", reason: storageEnv.STORAGE_PROVIDER === "local" ? "production-local-disabled" : "not-configured", missing: requiredS3Keys.slice() };
+  }
+  return { status: "available", provider: "local" };
+}
+
+let warningLogged = false;
+function warnUnavailable(capability: StorageCapability) {
+  if (warningLogged || capability.status === "available" || storageEnv.NODE_ENV !== "production" || process.env.NEXT_PHASE === "phase-production-build") return;
+  warningLogged = true;
+  console.warn("Object storage is not configured; storage-backed features are unavailable.");
+}
+
+export function isStorageAvailable() {
+  const capability = getStorageCapability();
+  warnUnavailable(capability);
+  return capability.status === "available";
+}
+
+export function requireStorage() {
+  const capability = getStorageCapability();
+  warnUnavailable(capability);
+  if (capability.status !== "available") throw new Error("STORAGE_UNAVAILABLE");
+  return capability;
+}
+
+class UnavailableObjectStorage implements ObjectStorage {
+  constructor(public readonly visibility: StorageVisibility) {}
+  private unavailable(): never { throw new Error("STORAGE_UNAVAILABLE"); }
+  put(): Promise<StoredObject> { return Promise.reject(new Error("STORAGE_UNAVAILABLE")); }
+  get(): Promise<Uint8Array> { return Promise.reject(new Error("STORAGE_UNAVAILABLE")); }
+  exists(): Promise<boolean> { return Promise.reject(new Error("STORAGE_UNAVAILABLE")); }
+  delete(): Promise<void> { return Promise.reject(new Error("STORAGE_UNAVAILABLE")); }
+  publicUrl(): string { return this.unavailable(); }
+}
 
 function checksum(bytes: Uint8Array) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -92,7 +161,7 @@ class S3ObjectStorage implements ObjectStorage {
     }
     this.client = new S3Client({
       endpoint: storageEnv.STORAGE_S3_ENDPOINT,
-      region: storageEnv.STORAGE_S3_REGION,
+      region: storageEnv.STORAGE_S3_REGION ?? "auto",
       forcePathStyle: Boolean(storageEnv.STORAGE_S3_ENDPOINT),
       credentials: { accessKeyId: storageEnv.STORAGE_S3_ACCESS_KEY_ID, secretAccessKey: storageEnv.STORAGE_S3_SECRET_ACCESS_KEY },
     });
@@ -125,23 +194,17 @@ class S3ObjectStorage implements ObjectStorage {
 }
 
 function productionStorageRequired() {
-  // Next evaluates route modules during `next build`; defer the operational
-  // requirement to runtime so builds remain portable while production starts
-  // fail closed when durable storage is not configured.
-  return (process.env.NODE_ENV ?? storageEnv.NODE_ENV) === "production"
-    && process.env.MK_E2E_TEST_MODE !== "1"
-    && process.env.NEXT_PHASE !== "phase-production-build";
+  return storageEnv.NODE_ENV === "production" && !isStorageAvailable();
 }
 
 function createStorage(visibility: StorageVisibility): ObjectStorage {
-  if (storageEnv.STORAGE_PROVIDER === "s3") {
+  const capability = getStorageCapability();
+  warnUnavailable(capability);
+  if (capability.status === "unavailable") return new UnavailableObjectStorage(visibility);
+  if (capability.provider === "s3") {
     const bucket = visibility === "PUBLIC_MEDIA" ? storageEnv.STORAGE_S3_PUBLIC_BUCKET : storageEnv.STORAGE_S3_PRIVATE_BUCKET;
-    if (!bucket) throw new Error(`STORAGE_S3_${visibility === "PUBLIC_MEDIA" ? "PUBLIC" : "PRIVATE"}_BUCKET_REQUIRED`);
-    if (visibility === "PUBLIC_MEDIA" && !storageEnv.PUBLIC_MEDIA_BASE_URL) throw new Error("PUBLIC_MEDIA_BASE_URL_REQUIRED");
+    if (!bucket) return new UnavailableObjectStorage(visibility);
     return new S3ObjectStorage(visibility, bucket, visibility === "PUBLIC_MEDIA" ? storageEnv.PUBLIC_MEDIA_BASE_URL : undefined);
-  }
-  if (productionStorageRequired()) {
-    throw new Error("DURABLE_STORAGE_REQUIRED_IN_PRODUCTION");
   }
   const root = visibility === "PUBLIC_MEDIA"
     ? resolve(storageEnv.PUBLIC_STORAGE_ROOT ?? join(process.cwd(), "public", "uploads"))

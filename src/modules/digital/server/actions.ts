@@ -27,7 +27,7 @@ export async function uploadDigitalAsset(input: FormData) {
     revalidatePath("/products", "layout");
     return success({ id: asset.id, version: asset.version });
   } catch (error) {
-    return failure(new ValidationError(error instanceof Error ? error.message : "Digital asset could not be uploaded."));
+    return failure(new ValidationError(error instanceof Error && ["STORAGE_UNAVAILABLE", "DURABLE_STORAGE_REQUIRED_IN_PRODUCTION"].includes(error.message) ? "Digital file storage is temporarily unavailable." : "Digital asset could not be uploaded."));
   }
 }
 

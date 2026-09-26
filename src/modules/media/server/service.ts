@@ -7,12 +7,12 @@ import {
 } from "@/modules/identity/infrastructure/repository";
 import { MediaService } from "../domain/service";
 import { PrismaMediaRepository } from "../infrastructure/repository";
-import { LocalStorageProvider } from "../infrastructure/storage-provider";
+import { ObjectMediaStorageProvider } from "../infrastructure/storage-provider";
 
 export function createMediaService() {
   return new MediaService(
     new PrismaMediaRepository(),
-    new LocalStorageProvider(),
+    new ObjectMediaStorageProvider(),
     new AuthorizationService(
       new PrismaPermissionRepository(),
       new PrismaUserRepository(),

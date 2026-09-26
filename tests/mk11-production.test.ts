@@ -38,7 +38,7 @@ test("production configuration rejects local storage and missing trust boundary"
     STORAGE_PROVIDER: "local",
     MARKET_TRUSTED_PROXY_SECRET: "",
   });
-  assert.match(localStorageOutput, /Production requires STORAGE_PROVIDER=s3|MARKET_TRUSTED_PROXY_SECRET is required/);
+  assert.match(localStorageOutput, /Production local storage is not supported|MARKET_TRUSTED_PROXY_SECRET is required/);
 });
 
 test("Vercel geo provider does not require the custom proxy secret", () => {

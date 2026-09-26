@@ -81,15 +81,19 @@ if (parsed.values.MARKET_GEO_PROVIDER !== "vercel") failures.push("MARKET_GEO_PR
 if (parsed.values.MARKET_TRUSTED_PROXY_SECRET && parsed.values.MARKET_GEO_PROVIDER === "vercel") failures.push("MARKET_TRUSTED_PROXY_SECRET: NOT REQUIRED in Vercel mode; remove it from the production file");
 if (parsed.values.MARKET_DEVELOPMENT_FALLBACK) failures.push("MARKET_DEVELOPMENT_FALLBACK: must not be configured in production");
 if (parsed.values.SEED_DEMO_CATALOG?.toLowerCase() === "true") failures.push("SEED_DEMO_CATALOG: demo activation is disabled in production");
-if (parsed.values.STORAGE_PROVIDER !== "s3") failures.push("STORAGE_PROVIDER: must be s3");
-for (const key of ["PUBLIC_MEDIA_BASE_URL", "STORAGE_S3_PUBLIC_BUCKET", "STORAGE_S3_PRIVATE_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY", "STORAGE_S3_REGION"]) {
+const storageProvider = parsed.values.STORAGE_PROVIDER;
+const storageKeys = ["PUBLIC_MEDIA_BASE_URL", "STORAGE_S3_PUBLIC_BUCKET", "STORAGE_S3_PRIVATE_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY", "STORAGE_S3_REGION"] as const;
+const storageFailures: string[] = [];
+if (storageProvider && !["disabled", "s3"].includes(storageProvider)) failures.push("STORAGE_PROVIDER: production local storage is not supported");
+for (const key of storageKeys) {
   const value = parsed.values[key];
-  if (!value) failures.push(`${key}: MISSING`);
-  else if (PLACEHOLDER_PATTERN.test(value)) failures.push(`${key}: PLACEHOLDER`);
+  if (!value) storageFailures.push(`${key}: MISSING`);
+  else if (PLACEHOLDER_PATTERN.test(value)) storageFailures.push(`${key}: PLACEHOLDER`);
 }
-if (parsed.values.PUBLIC_MEDIA_BASE_URL && !/^https:\/\//i.test(parsed.values.PUBLIC_MEDIA_BASE_URL)) failures.push("PUBLIC_MEDIA_BASE_URL: must be a valid HTTPS URL");
-if (parsed.values.STORAGE_S3_ENDPOINT && PLACEHOLDER_PATTERN.test(parsed.values.STORAGE_S3_ENDPOINT)) failures.push("STORAGE_S3_ENDPOINT: PLACEHOLDER");
-if (parsed.values.STORAGE_S3_ENDPOINT && !/^https:\/\//i.test(parsed.values.STORAGE_S3_ENDPOINT)) failures.push("STORAGE_S3_ENDPOINT: must be a valid HTTPS URL");
+if (parsed.values.PUBLIC_MEDIA_BASE_URL && !/^https:\/\//i.test(parsed.values.PUBLIC_MEDIA_BASE_URL)) storageFailures.push("PUBLIC_MEDIA_BASE_URL: must be a valid HTTPS URL");
+if (parsed.values.STORAGE_S3_ENDPOINT && PLACEHOLDER_PATTERN.test(parsed.values.STORAGE_S3_ENDPOINT)) storageFailures.push("STORAGE_S3_ENDPOINT: PLACEHOLDER");
+if (parsed.values.STORAGE_S3_ENDPOINT && !/^https:\/\//i.test(parsed.values.STORAGE_S3_ENDPOINT)) storageFailures.push("STORAGE_S3_ENDPOINT: must be a valid HTTPS URL");
+if (storageProvider === "s3") failures.push(...storageFailures);
 if (parsed.values.DATABASE_URL && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(parsed.values.DATABASE_URL)) failures.push("DATABASE_URL: cannot point to localhost");
 
 if (!parsed.values.DATABASE_URL) failures.push("DATABASE_URL: MISSING");
@@ -98,11 +102,13 @@ if (!parsed.values.AUTH_SECRET) failures.push("AUTH_SECRET: MISSING");
 else if (parsed.values.AUTH_SECRET.length < 32) failures.push("AUTH_SECRET: INVALID FORMAT");
 if (parsed.values.NEXT_PUBLIC_APP_URL && !/^https?:\/\/[^\s]+$/i.test(parsed.values.NEXT_PUBLIC_APP_URL)) failures.push("NEXT_PUBLIC_APP_URL: INVALID FORMAT");
 
-console.log("Production environment validation: " + (failures.length ? "FAIL" : "PASS"));
+const storageAvailable = storageProvider === "s3" && storageFailures.length === 0;
+console.log("Production core environment validation: " + (failures.length ? "FAIL" : "PASS"));
 console.log(`APP: NEXT_PUBLIC_APP_URL ........ ${status("NEXT_PUBLIC_APP_URL", parsed.values.NEXT_PUBLIC_APP_URL)}`);
 console.log(`MARKET: MARKET_GEO_PROVIDER ...... ${parsed.values.MARKET_GEO_PROVIDER || "MISSING"}`);
 console.log(`MARKET: Development fallback ...... ${parsed.values.MARKET_DEVELOPMENT_FALLBACK ? "INVALID" : "not enabled"}`);
-console.log(`STORAGE: STORAGE_PROVIDER .......... ${parsed.values.STORAGE_PROVIDER || "MISSING"}`);
+console.log(`Optional capabilities: Object storage ........ ${storageAvailable ? "AVAILABLE" : "UNAVAILABLE"}`);
+console.log(`STORAGE: STORAGE_PROVIDER .......... ${parsed.values.STORAGE_PROVIDER || "disabled (implicit)"}`);
 for (const key of ["PUBLIC_MEDIA_BASE_URL", "STORAGE_S3_PUBLIC_BUCKET", "STORAGE_S3_PRIVATE_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY", "STORAGE_S3_REGION", "STORAGE_S3_ENDPOINT"]) console.log(`STORAGE: ${key.padEnd(30, ".")} ${status(key, parsed.values[key])}`);
 for (const key of ["DATABASE_URL", "AUTH_SECRET"]) console.log(`CORE: ${key.padEnd(34, ".")} ${status(key, parsed.values[key])}`);
 for (const key of ["NEXT_PUBLIC_APP_URL", "MARKET_GEO_PROVIDER", "STORAGE_PROVIDER", "DATABASE_URL", "PUBLIC_MEDIA_BASE_URL"]) {
@@ -114,4 +120,10 @@ if (failures.length) {
   console.error("\nProduction environment blockers:");
   for (const failure of failures) console.error(`- ${failure}`);
   process.exitCode = 1;
+} else if (!storageAvailable) {
+  console.log("\nOptional storage is unavailable; core production validation still passes.");
+  if (storageFailures.length) {
+    console.log("Missing or invalid optional storage values:");
+    for (const failure of storageFailures) console.log(`- ${failure}`);
+  }
 }

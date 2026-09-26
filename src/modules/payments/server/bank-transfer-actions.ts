@@ -7,7 +7,7 @@ import { getPrismaClient } from "@/database/prisma";
 import { failure, success } from "@/core/result";
 import { ValidationError } from "@/core/errors";
 import { requireCustomer } from "@/modules/auth/server/queries";
-import { privateObjectStorage } from "@/modules/storage/provider";
+import { isStorageAvailable, privateObjectStorage } from "@/modules/storage/provider";
 
 const inputSchema = z.object({ orderId: z.string().min(1), senderName: z.string().trim().min(2).max(160), transferReference: z.string().trim().max(120).optional(), transferredAmount: z.string().trim().regex(/^\d+(\.\d{1,2})?$/).optional(), transferDate: z.string().trim().optional(), customerNote: z.string().trim().max(500).optional() });
 const allowed = new Map([["application/pdf", ".pdf"], ["image/jpeg", ".jpg"], ["image/png", ".png"], ["image/webp", ".webp"]]);
@@ -33,6 +33,7 @@ export async function uploadBankTransferProof(input: FormData) {
   const file = input.get("receipt"); const orderId = String(input.get("orderId") ?? "");
   if (!(file instanceof File) || !file.size || file.size > 10 * 1024 * 1024 || !allowed.has(file.type)) return failure(new ValidationError("Upload a PDF, JPEG, PNG, or WEBP receipt up to 10 MB."));
   const actor = await requireCustomer(); if (!actor.success) return failure(actor.error);
+  if (!isStorageAvailable()) return failure(new ValidationError("Receipt upload is temporarily unavailable."));
   const db = getPrismaClient(); const order = await db.order.findFirst({ where: { id: orderId, customerId: actor.data.user.id }, select: { id: true, paymentSnapshot: true } });
   if (!order || (order.paymentSnapshot as { method?: string } | null)?.method !== "BANK_TRANSFER") return failure(new ValidationError("Bank transfer proof is not available for this order."));
   const extension = allowed.get(file.type)!; const bytes = Buffer.from(await file.arrayBuffer()); const signatureValid = file.type === "application/pdf" ? bytes.subarray(0, 4).toString() === "%PDF" : file.type === "image/jpeg" ? bytes[0] === 0xff && bytes[1] === 0xd8 : file.type === "image/png" ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : bytes.subarray(0, 4).toString() === "RIFF" && bytes.subarray(8, 12).toString() === "WEBP";
@@ -44,7 +45,7 @@ export async function uploadBankTransferProof(input: FormData) {
   } catch (error) {
     await privateObjectStorage.delete(key).catch(() => undefined);
     void error;
-    return failure(new ValidationError("Receipt could not be stored securely."));
+    return failure(new ValidationError(error instanceof Error && error.message === "STORAGE_UNAVAILABLE" ? "Receipt upload is temporarily unavailable." : "Receipt could not be stored securely."));
   }
   return success({ id: orderId });
 }

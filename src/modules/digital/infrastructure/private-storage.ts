@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
-import { privateObjectStorage, productionStorageRequired } from "@/modules/storage/provider";
+import { privateObjectStorage, requireStorage } from "@/modules/storage/provider";
 
 export type PrivateStoredObject = { storageKey: string; sizeBytes: number; checksum: string; mimeType: string };
 
@@ -21,7 +21,7 @@ export function validatePdf(bytes: Uint8Array, mimeType: string) {
 
 export class PrivateDigitalStorage {
   private assertAvailable() {
-    if (productionStorageRequired()) throw new Error("DURABLE_STORAGE_REQUIRED_IN_PRODUCTION");
+    requireStorage();
   }
 
   async putPdf(bytes: Uint8Array, mimeType = "application/pdf"): Promise<PrivateStoredObject> {

@@ -49,6 +49,9 @@ function detectImageType(bytes: Uint8Array): AllowedMediaType | null {
 
 function mapMediaError(error: unknown): AppError {
   if (error instanceof AppError) return error;
+  if (error instanceof Error && error.message === "STORAGE_UNAVAILABLE") {
+    return new ValidationError("Storage service is not configured.");
+  }
   return new AppError("MEDIA_OPERATION_FAILED", "Media operation failed.", {
     cause: error,
   });
