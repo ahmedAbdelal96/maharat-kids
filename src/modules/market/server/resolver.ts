@@ -9,6 +9,7 @@ import { getMarketConfiguration, marketFromCountryCode, type Market } from "../d
 export type ResolvedMarket = Readonly<{ market: Market; source: "trusted-country-header" | "development-fallback"; configuration: ReturnType<typeof getMarketConfiguration> }>;
 
 export type MarketGeoProvider = "vercel" | "trusted_proxy";
+export type MarketCountryClassification = "supported_eg" | "supported_sa" | "unsupported" | "missing";
 
 export type MarketSignalInput = Readonly<{
   nodeEnv: "development" | "test" | "production";
@@ -23,6 +24,14 @@ export type MarketSignalInput = Readonly<{
 function matchesSecret(expected: string | undefined, supplied: string | undefined): boolean {
   if (!expected || !supplied || expected.length !== supplied.length) return false;
   return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+}
+
+export function classifyMarketCountryHeader(countryCode: string | null | undefined): MarketCountryClassification {
+  const normalized = countryCode?.trim().toUpperCase();
+  if (!normalized) return "missing";
+  if (normalized === "EG") return "supported_eg";
+  if (normalized === "SA") return "supported_sa";
+  return "unsupported";
 }
 
 /**
@@ -59,6 +68,12 @@ export async function resolveMarket(): Promise<ResolvedMarket> {
     // development still uses the explicit configured fallback in that context.
     if (env.NODE_ENV === "production") throw error;
   }
+  const countryClassification = classifyMarketCountryHeader(country);
+  const diagnosticContext = {
+    headerName,
+    geoHeaderPresent: countryClassification !== "missing",
+    countryClassification,
+  };
   try {
     const resolved = resolveMarketFromSignals({
       nodeEnv: env.NODE_ENV,
@@ -72,9 +87,9 @@ export async function resolveMarket(): Promise<ResolvedMarket> {
     return { ...resolved, configuration: getMarketConfiguration(resolved.market) };
   } catch (error) {
     if (error instanceof Error && error.message === "MARKET_TRUST_UNVERIFIED") {
-      logger.warn("Market request did not pass the trusted proxy boundary", { headerName });
+      logger.warn("Market request did not pass the trusted proxy boundary", diagnosticContext);
     } else {
-      logger.warn("Market could not be resolved from trusted infrastructure", { headerName });
+      logger.warn("Market could not be resolved from trusted infrastructure", diagnosticContext);
     }
     throw error;
   }

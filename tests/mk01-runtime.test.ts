@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { resolveMarketFromSignals } from "../src/modules/market/server/resolver";
+import { classifyMarketCountryHeader, resolveMarketFromSignals } from "../src/modules/market/server/resolver";
 
 const base = {
   developmentMarket: "SAUDI_ARABIA" as const,
@@ -37,6 +37,14 @@ test("Vercel geo fails closed for missing or unsupported country", () => {
   assert.throws(() => resolveMarketFromSignals({ ...base, geoProvider: "vercel", nodeEnv: "production", countryCode: "US", trustedProxySecret: undefined }), /MARKET_UNRESOLVED/);
 });
 
+test("market diagnostics distinguish supported, missing, and unsupported geo", () => {
+  assert.equal(classifyMarketCountryHeader("EG"), "supported_eg");
+  assert.equal(classifyMarketCountryHeader(" sa "), "supported_sa");
+  assert.equal(classifyMarketCountryHeader("US"), "unsupported");
+  assert.equal(classifyMarketCountryHeader(""), "missing");
+  assert.equal(classifyMarketCountryHeader(null), "missing");
+});
+
 test("trusted proxy still requires its configured secret", () => {
   assert.throws(() => resolveMarketFromSignals({ ...base, geoProvider: "trusted_proxy", nodeEnv: "production", countryCode: "EG", suppliedProxySecret: undefined }), /MARKET_TRUST_UNVERIFIED/);
   assert.equal(resolveMarketFromSignals({ ...base, geoProvider: "trusted_proxy", nodeEnv: "production", countryCode: "EG", suppliedProxySecret: base.trustedProxySecret }).market, "EGYPT");
@@ -68,4 +76,10 @@ test("market-sensitive routes stay request-dynamic and locale does not select a 
   }
   const header = readFileSync("src/components/layout/store-header.tsx", "utf8");
   assert.doesNotMatch(header, /market|currency.*select|SAUDI_ARABIA|EGYPT/i);
+});
+
+test("Next 16 proxy keeps the original request and market cache variance", () => {
+  const proxy = readFileSync("src/proxy.ts", "utf8");
+  assert.match(proxy, /intlMiddleware\(request\)/);
+  assert.match(proxy, /x-vercel-ip-country/);
 });

@@ -19,6 +19,6 @@ import validation from "./validation.json";
 import time from "./time.json";
 import errors from "./errors.json";
 
-const messages = { common, navigation, auth, storefront, products, cart, checkout, account, orders, shipping, returns, promotions, coupons, reviews, customers, admin, settings, validation, time, errors };
+const messages = { common, navigation, auth, storefront: { ...storefront, viewAll: "View all" }, products, cart, checkout, account, orders, shipping, returns, promotions, coupons, reviews, customers, admin, settings, validation, time, errors };
 
 export default messages;

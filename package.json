@@ -22,6 +22,7 @@
     "test:otp": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/otp-providers.test.ts",
     "test:media": "node node_modules/tsx/dist/cli.cjs --test tests/media-static.test.ts",
     "test:seed-media": "node node_modules/tsx/dist/cli.cjs --test tests/seed-media-migration.test.ts",
+    "test:translations": "node node_modules/tsx/dist/cli.cjs --test tests/translation-parity.test.ts",
     "test:mk11": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk11-production.test.ts",
     "test:demo-visual": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/demo-visual.test.ts",
     "storage:migrate": "node --env-file=.env node_modules/tsx/dist/cli.cjs scripts/migrate-storage.ts",
