@@ -8,6 +8,7 @@ import { storeMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import { resolveMarket } from "@/modules/market/server/resolver";
 import { getCatalogTaxonomy } from "@/modules/catalog/server/queries";
+import { withStorefrontCategoryLabels } from "@/modules/products/types";
 
 export const dynamic = "force-dynamic";
 
@@ -25,5 +26,5 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (!products.success) throw products.error;
   if (!categories.success) throw categories.error;
   if (!settings.success) throw settings.error;
-  return <StorefrontProductsClient page={products.data} categories={categories.data ?? []} taxonomy={{ skills, productTypes }} currency={market.configuration.currency} favoriteProductIds={favoriteIds} filters={{ search: query.q, categorySlug: query.category, minPrice: query.min, maxPrice: query.max, ageMonths: query.age, skillId: query.skill, productTypeId: query.type, language: query.language, inStock: query.inStock === "true" }} />;
+  return <StorefrontProductsClient page={{ ...products.data, items: withStorefrontCategoryLabels(products.data.items, categories.data) }} categories={categories.data ?? []} taxonomy={{ skills, productTypes }} currency={market.configuration.currency} favoriteProductIds={favoriteIds} filters={{ search: query.q, categorySlug: query.category, minPrice: query.min, maxPrice: query.max, ageMonths: query.age, skillId: query.skill, productTypeId: query.type, language: query.language, inStock: query.inStock === "true" }} />;
 }

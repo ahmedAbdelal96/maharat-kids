@@ -117,8 +117,7 @@ export class PrismaReviewRepository implements ReviewRepository {
 
   async getPublic(productId: string, page = 1, pageSize = 10): Promise<PublicReviewPage> {
     const where = { productId, status: "APPROVED" as const };
-    const [total, records, grouped] = await Promise.all([
-      this.db.productReview.count({ where }),
+    const [records, grouped] = await Promise.all([
       this.db.productReview.findMany({ where, include: { product: { include: this.productInclude }, user: { select: { name: true, email: true } }, orderItem: { include: { order: { select: { orderNumber: true } } } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
       this.db.productReview.groupBy({ by: ["rating"], where, _count: { _all: true }, _avg: { rating: true } }),
     ]);
@@ -126,7 +125,7 @@ export class PrismaReviewRepository implements ReviewRepository {
     for (const row of grouped) if (row.rating >= 1 && row.rating <= 5) distribution[row.rating as 1 | 2 | 3 | 4 | 5] = row._count._all;
     const count = grouped.reduce((sum, row) => sum + row._count._all, 0);
     const average = count ? grouped.reduce((sum, row) => sum + (row._avg.rating ?? 0) * row._count._all, 0) / count : 0;
-    return { items: records.map((record) => toPublicReview(record, record.user.name?.trim() || record.user.email?.split("@")[0] || "Verified customer")), summary: { average: Math.round(average * 10) / 10, count, distribution }, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+    return { items: records.map((record) => toPublicReview(record, record.user.name?.trim() || record.user.email?.split("@")[0] || "Verified customer")), summary: { average: Math.round(average * 10) / 10, count, distribution }, page, pageSize, total: count, totalPages: Math.max(1, Math.ceil(count / pageSize)) };
   }
 
   async getAdmin(filters: AdminReviewFilters = {}): Promise<AdminReviewsPage> {

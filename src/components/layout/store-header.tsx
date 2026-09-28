@@ -19,7 +19,6 @@ import { SearchBar } from "@/components/shared/search-bar";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MobileNav } from "./mobile-nav";
 import { CartDrawer } from "@/components/ecommerce/cart-drawer";
-import type { Cart } from "@/modules/cart/types";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 import type { StorefrontNotificationSummary } from "@/modules/notifications/types";
@@ -27,6 +26,7 @@ import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { useTranslations } from "next-intl";
 import { logout, logoutCurrentUser } from "@/modules/auth/server/actions";
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { useCartState } from "@/components/ecommerce/cart-state";
 
 export interface NavLink {
   label: string;
@@ -53,7 +53,6 @@ export const STORE_NAV_LINKS: NavLink[] = [
 export interface StoreHeaderProps {
   storeName?: string;
   announcement?: string;
-  cart?: Cart | null;
   currency: string;
   favoriteCount?: number | null;
   favoritesHref?: string | null;
@@ -63,7 +62,6 @@ export interface StoreHeaderProps {
 
 export function StoreHeader({
   announcement,
-  cart = null,
   currency,
   favoriteCount = null,
   favoritesHref = "/account/favorites",
@@ -77,8 +75,9 @@ export function StoreHeader({
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [, startLogout] = useTransition();
+  const { cart: currentCart } = useCartState();
 
-  const totalCartCount = cart?.itemCount ?? 0;
+  const totalCartCount = currentCart.itemCount;
 
   function handleLogout() {
     startLogout(async () => {
@@ -340,7 +339,7 @@ export function StoreHeader({
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        cart={cart}
+        cart={currentCart}
         currency={currency}
       />
     </>

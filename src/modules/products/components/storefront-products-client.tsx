@@ -10,7 +10,7 @@ import { ProductGrid } from "@/components/ecommerce/product-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchBar } from "@/components/shared/search-bar";
 import type { Category } from "@/modules/categories/types";
-import type { ProductPage } from "../types";
+import type { StorefrontProductPage } from "../types";
 
 type Filters = {
   search?: string;
@@ -46,7 +46,7 @@ export function StorefrontProductsClient({
   filters,
   favoriteProductIds = [],
 }: {
-  page: ProductPage;
+  page: StorefrontProductPage;
   categories?: Category[];
   taxonomy: {
     skills: Array<{ id: string; nameAr: string; nameEn: string }>;

@@ -1,16 +1,16 @@
 import { ProductCard } from "./product-card";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Product } from "@/modules/products/types";
+import type { StorefrontCardProduct } from "@/modules/products/types";
 import { cn } from "@/lib/utils";
 
 export interface ProductGridProps {
-  products: Product[];
+  products: StorefrontCardProduct[];
   isLoading?: boolean;
   currency: string;
-  onAddToCart?: (product: Product, quantity?: number) => void;
+  onAddToCart?: (product: StorefrontCardProduct, quantity?: number) => void;
   favoriteProductIds?: string[];
-  onFavoriteChange?: (product: Product, isFavorite: boolean) => void;
+  onFavoriteChange?: (product: StorefrontCardProduct, isFavorite: boolean) => void;
   columns?: 2 | 3 | 4;
   className?: string;
 }

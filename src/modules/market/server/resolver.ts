@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { timingSafeEqual } from "node:crypto";
 import { headers } from "next/headers";
 import { env } from "@/config/env";
@@ -55,7 +56,7 @@ export function resolveMarketFromSignals(input: MarketSignalInput): { market: Ma
  * Deployment adapters inject the country header. In production, absence or an
  * unsupported country fails closed instead of trusting locale/cookies/client input.
  */
-export async function resolveMarket(): Promise<ResolvedMarket> {
+export const resolveMarket = cache(async function resolveMarket(): Promise<ResolvedMarket> {
   const headerName = env.MARKET_TRUSTED_COUNTRY_HEADER;
   let country: string | null = null;
   let suppliedSecret: string | undefined;
@@ -93,4 +94,4 @@ export async function resolveMarket(): Promise<ResolvedMarket> {
     }
     throw error;
   }
-}
+});

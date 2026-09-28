@@ -13,7 +13,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { absoluteUrl, breadcrumbJsonLd, localizedAlternates, localizedUrl, productJsonLd, storeMetadata } from "@/lib/seo";
 import { isLocale, type Locale } from "@/config/locale";
 import { getPublicCategories } from "@/modules/categories/server/queries";
-import { getPublicProduct, getPublicProducts } from "@/modules/products/server/queries";
+import { getPublicProduct, getPublicRelatedProducts } from "@/modules/products/server/queries";
 import { getPublicStoreSettings } from "@/modules/store/server/queries";
 import { getCurrentCustomerFavoriteIds } from "@/modules/favorites/server/queries";
 import { getParticipatingPromotionForProduct } from "@/modules/promotions/server/queries";
@@ -45,10 +45,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const navigation = await getTranslations("navigation");
   const t = await getTranslations("storefront");
   const availability = await getTranslations("common.availability");
-  const [product, categories, allProducts, settings, favoriteIds, market] = await Promise.all([
+  const [product, categories, settings, favoriteIds, market] = await Promise.all([
     getPublicProduct(slug),
     getPublicCategories(),
-    getPublicProducts({ pageSize: 48 }),
     getPublicStoreSettings(),
     getCurrentCustomerFavoriteIds(),
     resolveMarket(),
@@ -56,28 +55,32 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   if (!product.success) throw product.error;
   if (!categories.success) throw categories.error;
-  if (!allProducts.success) throw allProducts.error;
   if (!settings.success) throw settings.error;
   if (!product.data) notFound();
-  const current = product.data;
+  const categoryMap = new Map(categories.data.map((category) => [category.id, category]));
+  const categoryForProduct = product.data.categoryId ? categoryMap.get(product.data.categoryId as never) ?? null : null;
+  const current = {
+    ...product.data,
+    categoryName: product.data.categoryName ?? categoryForProduct?.name ?? null,
+    categorySlug: product.data.categorySlug ?? categoryForProduct?.slug ?? null,
+  };
 
-  const promoResult = await getParticipatingPromotionForProduct(current.id);
-  const activePromo = promoResult.success ? promoResult.data : null;
-  const [publicReviews, customerEligibility] = await Promise.all([
+  const [relatedResult, promoResult, publicReviews, customerEligibility] = await Promise.all([
+    getPublicRelatedProducts(current.categoryId, current.id, 3),
+    getParticipatingPromotionForProduct(current.id),
     getPublicProductReviews(current.id),
     getCustomerReviewEligibility(current.id),
   ]);
+  if (!relatedResult.success) throw relatedResult.error;
+  const activePromo = promoResult.success ? promoResult.data : null;
 
-  const categoryMap = new Map(categories.data.map((category) => [category.id, category]));
   const breadcrumbCategories = [];
   let cursor = current.categoryId ? categoryMap.get(current.categoryId as never) ?? null : null;
   while (cursor) {
     breadcrumbCategories.unshift(cursor);
     cursor = cursor.parentId ? categoryMap.get(cursor.parentId) ?? null : null;
   }
-  const related = allProducts.data.items
-    .filter((item) => item.id !== current.id && item.categoryId === current.categoryId)
-    .slice(0, 3);
+  const related = relatedResult.data.map((item) => ({ ...item, categoryName: item.categoryName ?? current.categoryName, categorySlug: item.categorySlug ?? current.categorySlug }));
   const digitalReady = current.fulfillmentType !== "DIGITAL" || (current.digitalAssets?.some((asset) => asset.status === "ACTIVE") ?? false);
   const available = digitalReady && (!current.trackInventory || current.stockQuantity > 0);
   const breadcrumbItems = [

@@ -4,14 +4,14 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { ProductGrid } from "./product-grid";
-import type { Product } from "@/modules/products/types";
+import type { StorefrontCardProduct } from "@/modules/products/types";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 
 export interface FeaturedProductsSectionProps {
-  products: Product[];
+  products: StorefrontCardProduct[];
   currency: string;
   categories?: { id: string; label: string; count?: number }[];
   favoriteProductIds?: string[];

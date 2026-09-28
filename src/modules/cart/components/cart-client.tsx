@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Gift, Minus, Plus, ShoppingBag, Sparkles, Tag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,20 +12,18 @@ import { ProductImage } from "@/components/ecommerce/product-image";
 import { formatMoney as formatMoneyBase } from "@/lib/formatters";
 import { localeToIntl } from "@/config/locale";
 import { applyCouponToCart, removeCartItem, removeCouponFromCart, updateCartItemQuantity } from "../server/actions";
-import type { Cart } from "../types";
+import { useCartState } from "@/components/ecommerce/cart-state";
 
-export function CartClient({ initialCart, currency }: { initialCart: Cart; currency: string }) {
-  const router = useRouter();
+export function CartClient({ currency }: { currency: string }) {
   const t = useTranslations("cart");
   const actions = useTranslations("common.actions");
   const locale = useLocale();
   const formatMoney = (amount: string | number, currencyCode = currency) => formatMoneyBase(amount, currencyCode, localeToIntl(locale === "en" ? "en" : "ar"));
   const reduceMotion = useReducedMotion();
-  const [cart, setCart] = useState(initialCart);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const { cart, runMutation, isPending } = useCartState();
   const [error, setError] = useState("");
   const [couponCode, setCouponCode] = useState("");
-  const [couponBusy, setCouponBusy] = useState(false);
+  const couponBusy = isPending("coupon");
 
   async function setQuantity(cartItemId: string, quantity: number) {
     const item = cart.items.find((current) => current.id === cartItemId);
@@ -34,42 +31,28 @@ export function CartClient({ initialCart, currency }: { initialCart: Cart; curre
       setError(t("onlyAvailable", { count: item.availableStock, name: item.name }));
       return;
     }
-    setBusyId(cartItemId);
     setError("");
-    const result = await updateCartItemQuantity({ cartItemId, quantity });
-    if (!result.success) setError(result.error.message);
-    else setCart(result.data);
-    router.refresh();
-    setBusyId(null);
+    await runMutation(`item:${cartItemId}`, () => updateCartItemQuantity({ cartItemId, quantity })).then((result) => {
+      if (!result.success) setError(result.error?.message ?? t("updateFailed"));
+    });
   }
 
   async function remove(cartItemId: string) {
-    setBusyId(cartItemId);
     setError("");
-    const result = await removeCartItem({ cartItemId });
-    if (!result.success) setError(result.error.message);
-    else setCart(result.data);
-    router.refresh();
-    setBusyId(null);
+    const result = await runMutation(`item:${cartItemId}`, () => removeCartItem({ cartItemId }));
+    if (!result.success) setError(result.error?.message ?? t("updateFailed"));
   }
 
   async function applyCoupon() {
-    setCouponBusy(true);
     setError("");
-    const result = await applyCouponToCart({ code: couponCode });
-    if (!result.success) setError(result.error.message);
-    else { setCart(result.data); setCouponCode(""); }
-    router.refresh();
-    setCouponBusy(false);
+    const result = await runMutation("coupon", () => applyCouponToCart({ code: couponCode }));
+    if (!result.success) setError(result.error?.message ?? t("updateFailed"));
+    else setCouponCode("");
   }
 
   async function removeCoupon() {
-    setCouponBusy(true);
-    const result = await removeCouponFromCart();
-    if (!result.success) setError(result.error.message);
-    else setCart(result.data);
-    router.refresh();
-    setCouponBusy(false);
+    const result = await runMutation("coupon", removeCouponFromCart);
+    if (!result.success) setError(result.error?.message ?? t("updateFailed"));
   }
 
   const warningNotice = cart.warnings.length > 0 && <div role="status" className="mb-4 space-y-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-left text-xs text-[var(--text-primary)]">{cart.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div>;
@@ -137,10 +120,10 @@ export function CartClient({ initialCart, currency }: { initialCart: Cart; curre
               return (
                 <motion.div key={item.id} layout={!reduceMotion} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[var(--radius-lg)]"><ProductImage src={item.imageUrl ?? undefined} alt={item.name} aspectRatio="square" /></div>
+                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[var(--radius-lg)]"><ProductImage src={item.imageUrl ?? undefined} alt={item.name} aspectRatio="square" sizes="96px" /></div>
                     <div className="min-w-0"><p className="truncate font-semibold text-[var(--text-primary)]">{item.name}</p><p className="mt-1 text-xs text-[var(--text-secondary)]">{formatMoney(item.unitPrice, currency)} {t("each")}</p>{!item.isAvailable && <p className="mt-2 text-xs font-semibold text-[var(--destructive)]">{t("productUnavailable")}</p>}{item.availableStock !== null && <p className="mt-2 text-xs text-[var(--text-muted)]">{t("available", { count: item.availableStock })}</p>}{atStockLimit && <p className="mt-1 text-[10px] font-semibold text-[var(--warning)]">{t("maximumReached")}</p>}</div>
                   </div>
-                  <div className="flex items-center justify-between gap-5 sm:justify-end"><div className="flex items-center rounded-[var(--radius-md)] border border-[var(--border)]"><Button variant="ghost" size="icon" aria-label={t("decrease", { name: item.name })} disabled={busyId === item.id || item.quantity <= 1 || !item.isAvailable} onClick={() => setQuantity(item.id, item.quantity - 1)}><Minus className="h-3.5 w-3.5" /></Button><span className="w-8 text-center text-xs font-bold">{item.quantity}</span><Button variant="ghost" size="icon" aria-label={t("increase", { name: item.name })} disabled={busyId === item.id || atStockLimit || !item.isAvailable} onClick={() => setQuantity(item.id, item.quantity + 1)}><Plus className="h-3.5 w-3.5" /></Button></div><span className="min-w-24 text-right text-sm font-bold">{formatMoney(item.lineTotal, currency)}</span><Button variant="ghost" size="icon" aria-label={t("removeItem", { name: item.name })} disabled={busyId === item.id} onClick={() => remove(item.id)}><Trash2 className="h-4 w-4 text-[var(--destructive)]" /></Button></div>
+                  <div className="flex items-center justify-between gap-5 sm:justify-end"><div className="flex items-center rounded-[var(--radius-md)] border border-[var(--border)]"><Button variant="ghost" size="icon" aria-label={t("decrease", { name: item.name })} disabled={isPending(`item:${item.id}`) || item.quantity <= 1 || !item.isAvailable} onClick={() => setQuantity(item.id, item.quantity - 1)}><Minus className="h-3.5 w-3.5" /></Button><span className="w-8 text-center text-xs font-bold">{item.quantity}</span><Button variant="ghost" size="icon" aria-label={t("increase", { name: item.name })} disabled={isPending(`item:${item.id}`) || atStockLimit || !item.isAvailable} onClick={() => setQuantity(item.id, item.quantity + 1)}><Plus className="h-3.5 w-3.5" /></Button></div><span className="min-w-24 text-right text-sm font-bold">{formatMoney(item.lineTotal, currency)}</span><Button variant="ghost" size="icon" aria-label={t("removeItem", { name: item.name })} disabled={isPending(`item:${item.id}`)} onClick={() => remove(item.id)}><Trash2 className="h-4 w-4 text-[var(--destructive)]" /></Button></div>
                 </motion.div>
               );
             })}

@@ -12,11 +12,11 @@ import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from "@/modules/audit/constants";
 import { resolvePublicMediaUrl } from "@/modules/media/domain/public-url";
 import type { AuditMutationContext } from "@/modules/audit/types";
 import { PrismaAuditLogRepository } from "@/modules/audit/infrastructure/repository";
-import type { Product, ProductId, CreateProductInput, ProductImageInput, ProductPage, ProductQuery, UpdateProductInput } from "../types";
+import type { Product, ProductId, CreateProductInput, ProductImageInput, ProductPage, ProductQuery, StorefrontCardProduct, StorefrontProductPage, UpdateProductInput } from "../types";
 
 const imageInclude = { orderBy: [{ isPrimary: "desc" as const }, { sortOrder: "asc" as const }, { createdAt: "asc" as const }] };
 type ProductRecord = PrismaProduct & {
-  category: { name: string; slug: string; translations?: { locale: "ar" | "en"; name: string }[] } | null;
+  category?: { name: string; slug: string; translations?: { locale: "ar" | "en"; name: string }[] } | null;
   translations?: { locale: "ar" | "en"; name: string; shortDescription: string | null; description: string | null }[];
   images: { id: string; mediaId: string | null; url: string | null; altText: string | null; sortOrder: number; isPrimary: boolean; media: { url: string } | null }[];
   marketPrices?: { market: Market; price: Prisma.Decimal; compareAtPrice: Prisma.Decimal | null }[];
@@ -39,7 +39,11 @@ export interface ProductRepository {
   findById(id: ProductId): Promise<Product | null>;
   findByIds(ids: ProductId[]): Promise<Product[]>;
   findBySlug(slug: string, publicOnly?: boolean): Promise<Product | null>;
+  findPublicDetail(slug: string): Promise<Product | null>;
   findPublic(input: ProductQuery): Promise<ProductPage>;
+  findPublicCards(input: ProductQuery): Promise<StorefrontProductPage>;
+  findPublicRelated(categoryId: string | null, excludeId: ProductId, limit: number): Promise<Product[]>;
+  findPublicRelatedCards(categoryId: string | null, excludeId: ProductId, limit: number): Promise<StorefrontCardProduct[]>;
   findAdmin(input?: ProductQuery): Promise<ProductPage>;
   slugExists(slug: string): Promise<boolean>;
   skuExists(sku: string): Promise<boolean>;
@@ -58,6 +62,14 @@ export interface ProductRepository {
 export class PrismaProductRepository implements ProductRepository {
   constructor(private readonly db: PrismaClient = getPrismaClient()) {}
   private audit = new AuditLogService(new PrismaAuditLogRepository());
+  async findPublicCards(input: ProductQuery): Promise<StorefrontProductPage> {
+    const { StorefrontProductRepository } = await import("./storefront-repository");
+    return new StorefrontProductRepository(this.db).findCards(input);
+  }
+  async findPublicRelatedCards(categoryId: string | null, excludeId: ProductId, limit: number) {
+    const { StorefrontProductRepository } = await import("./storefront-repository");
+    return new StorefrontProductRepository(this.db).findRelatedCards(categoryId, excludeId, limit);
+  }
   private include = { category: { select: { name: true, slug: true, translations: { select: { locale: true, name: true } } } }, translations: { select: { locale: true, name: true, shortDescription: true, description: true } }, images: { ...imageInclude, include: { media: { select: { url: true } } } }, marketPrices: true, digitalAssets: { select: { id: true, variantId: true, displayNameAr: true, displayNameEn: true, mimeType: true, sizeBytes: true, version: true, status: true }, orderBy: { version: "desc" as const } }, options: { include: { values: { orderBy: { sortOrder: "asc" as const } } }, orderBy: { sortOrder: "asc" as const } }, variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } }, marketPrices: true, images: true }, orderBy: { sortOrder: "asc" as const } }, categoryAssignments: { select: { categoryId: true } }, skillAssignments: { select: { skillId: true } }, objectiveAssignments: { select: { learningObjectiveId: true } }, productTypeAssignments: { select: { productTypeId: true } }, useContextAssignments: { select: { useContextId: true } }, ageGroups: { select: { ageGroupId: true } } } as const;
   private async withApprovedRatings(records: ProductRecord[], locale: "ar" | "en", market?: Market): Promise<Product[]> {
     if (records.length === 0) return [];
@@ -68,8 +80,142 @@ export class PrismaProductRepository implements ProductRepository {
       return ratingSummary ? { ...product, ratingSummary } : product;
     });
   }
+  async findPublicRelated(categoryId: string | null, excludeId: ProductId, limit: number) {
+    if (!categoryId || limit <= 0) return [];
+    const locale = await requestLocale();
+    const market = (await resolveMarket()).market;
+    const records = await this.db.product.findMany({
+      where: {
+        id: { not: excludeId },
+        categoryId,
+        status: "ACTIVE",
+        marketPrices: { some: { market } },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        shortDescription: true,
+        description: true,
+        sku: true,
+        status: true,
+        fulfillmentType: true,
+        isFeatured: true,
+        categoryId: true,
+        primaryCategoryId: true,
+        minAgeMonths: true,
+        maxAgeMonths: true,
+        productLanguage: true,
+        difficultyLevel: true,
+        materials: true,
+        numberOfPieces: true,
+        dimensions: true,
+        recommendedPlayers: true,
+        supervisionRequired: true,
+        safetyNotes: true,
+        usageInstructions: true,
+        trackInventory: true,
+        stockQuantity: true,
+        createdAt: true,
+        updatedAt: true,
+        category: { select: { name: true, slug: true, translations: { select: { locale: true, name: true } } } },
+        translations: { select: { locale: true, name: true, shortDescription: true, description: true } },
+        images: {
+          where: { isPrimary: true },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          take: 1,
+          select: { id: true, mediaId: true, url: true, altText: true, sortOrder: true, isPrimary: true, media: { select: { url: true } } },
+        },
+        marketPrices: { select: { market: true, price: true, compareAtPrice: true } },
+        variants: {
+          where: { active: true },
+          select: {
+            trackInventory: true,
+            stockQuantity: true,
+            marketPrices: { select: { market: true, price: true, compareAtPrice: true } },
+          },
+        },
+      },
+      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    const summaries = await getApprovedRatingSummaries(this.db, records.map((record) => record.id));
+    return records.map((record) => {
+      const translation = record.translations.find((item) => item.locale === locale) ?? record.translations.find((item) => item.locale === "ar");
+      const categoryTranslation = record.category?.translations.find((item) => item.locale === locale) ?? record.category?.translations.find((item) => item.locale === "ar");
+      const marketPrice = record.marketPrices.find((item) => item.market === market);
+      const sa = record.marketPrices.find((item) => item.market === "SAUDI_ARABIA");
+      const eg = record.marketPrices.find((item) => item.market === "EGYPT");
+      if (!marketPrice || !sa || !eg) throw new Error("MARKET_PRICE_MISSING");
+      const variants = record.variants;
+      const activeVariantPrices = variants.filter((variant) => !variant.trackInventory || variant.stockQuantity > 0);
+      const effectivePrice = activeVariantPrices.length
+        ? Math.min(...activeVariantPrices.map((variant) => Number(variant.marketPrices.find((price) => price.market === market)?.price ?? marketPrice.price)))
+        : Number(marketPrice.price);
+      const product: Product = {
+        id: record.id as ProductId,
+        name: translation?.name ?? record.name,
+        slug: record.slug,
+        shortDescription: translation?.shortDescription ?? record.shortDescription,
+        description: translation?.description ?? record.description,
+        sku: record.sku,
+        price: effectivePrice.toFixed(2),
+        compareAtPrice: money(marketPrice.compareAtPrice),
+        marketPrices: { saudiPrice: sa.price.toFixed(2), saudiCompareAtPrice: money(sa.compareAtPrice), egyptPrice: eg.price.toFixed(2), egyptCompareAtPrice: money(eg.compareAtPrice) },
+        status: record.status,
+        fulfillmentType: record.fulfillmentType,
+        isFeatured: record.isFeatured,
+        categoryId: record.categoryId,
+        primaryCategoryId: record.primaryCategoryId,
+        categoryIds: record.categoryId ? [record.categoryId] : [],
+        minAgeMonths: record.minAgeMonths,
+        maxAgeMonths: record.maxAgeMonths,
+        productLanguage: record.productLanguage,
+        difficultyLevel: record.difficultyLevel,
+        skillIds: [],
+        learningObjectiveIds: [],
+        productTypeIds: [],
+        useContextIds: [],
+        ageGroupIds: [],
+        materials: record.materials,
+        numberOfPieces: record.numberOfPieces,
+        dimensions: record.dimensions,
+        recommendedPlayers: record.recommendedPlayers,
+        supervisionRequired: record.supervisionRequired,
+        safetyNotes: record.safetyNotes,
+        usageInstructions: record.usageInstructions,
+        categoryName: categoryTranslation?.name ?? record.category?.name ?? null,
+        categorySlug: record.category?.slug ?? null,
+        trackInventory: variants.length ? variants.some((variant) => variant.trackInventory) : record.trackInventory,
+        stockQuantity: variants.length ? variants.reduce((total, variant) => total + (variant.trackInventory ? variant.stockQuantity : 1), 0) : record.stockQuantity,
+        hasVariants: variants.length > 0,
+        images: record.images.map((image) => ({ id: image.id, mediaId: image.mediaId, url: resolvePublicMediaUrl(image.media?.url ?? image.url), altText: image.altText, sortOrder: image.sortOrder, isPrimary: image.isPrimary })),
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+        ratingSummary: summaries.get(record.id),
+      };
+      return product;
+    });
+  }
   async findById(id: ProductId) { const locale = await requestLocale(); const record = await this.db.product.findUnique({ where: { id }, include: this.include }); return record ? toProduct(record as ProductRecord, locale) : null; }
   async findByIds(ids: ProductId[]) { if (ids.length === 0) return []; const locale = await requestLocale(); const records = await this.db.product.findMany({ where: { id: { in: ids } }, include: this.include }); return this.withApprovedRatings(records as ProductRecord[], locale); }
+  async findPublicDetail(slug: string) {
+    const locale = await requestLocale();
+    const market = (await resolveMarket()).market;
+    const record = await this.db.product.findFirst({
+      where: { slug, status: "ACTIVE", marketPrices: { some: { market } } },
+      include: {
+        translations: { where: { locale: { in: [locale, "ar"] } }, select: { locale: true, name: true, shortDescription: true, description: true } },
+        images: { ...imageInclude, include: { media: { select: { url: true } } } },
+        marketPrices: true,
+        digitalAssets: { select: { id: true, variantId: true, displayNameAr: true, displayNameEn: true, mimeType: true, sizeBytes: true, version: true, status: true }, orderBy: { version: "desc" as const } },
+        options: { include: { values: { orderBy: { sortOrder: "asc" as const } } }, orderBy: { sortOrder: "asc" as const } },
+        variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } }, marketPrices: true, images: true }, orderBy: { sortOrder: "asc" as const } },
+        skillAssignments: { select: { skillId: true } },
+      },
+    });
+    return record ? toProduct(record as unknown as ProductRecord, locale, market) : null;
+  }
   async findBySlug(slug: string, publicOnly = false) { const locale = await requestLocale(); const market = publicOnly ? (await resolveMarket()).market : undefined; const record = await this.db.product.findFirst({ where: { slug, ...(publicOnly ? { status: "ACTIVE", marketPrices: { some: { market } } } : {}) }, include: this.include }); return record ? toProduct(record as ProductRecord, locale, market) : null; }
   async slugExists(slug: string) { return !!(await this.db.product.findUnique({ where: { slug }, select: { id: true } })); }
   async skuExists(sku: string) { return !!(await this.db.product.findUnique({ where: { sku }, select: { id: true } })); }

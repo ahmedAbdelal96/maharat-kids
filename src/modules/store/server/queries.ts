@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { failure } from "@/core/result";
 import { requireAuthenticatedUser } from "@/modules/auth/server/queries";
@@ -33,7 +34,7 @@ export async function getAdminStoreSettings() {
   return createDefaultStoreSettingService().getStoreSettings(actor.data.user.id);
 }
 
-export async function getPublicStoreSettings() {
+const getPublicStoreSettingsCached = cache(async () => {
   const result = await createDefaultStoreSettingService().getPublicStoreSettings();
   if (!result.success) return result;
   try {
@@ -42,6 +43,10 @@ export async function getPublicStoreSettings() {
   } catch {
     return result;
   }
+});
+
+export async function getPublicStoreSettings() {
+  return getPublicStoreSettingsCached();
 }
 
 export function createStoreQueries(service: StoreSettingService, actorUserId: UserId) {

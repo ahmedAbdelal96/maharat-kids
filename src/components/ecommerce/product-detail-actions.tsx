@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/modules/products/types";
@@ -12,6 +11,8 @@ import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
 import { PriceDisplay } from "@/components/ecommerce/price-display";
 import { useProductVariantSelection } from "./product-variant-selection";
+import { useCartState } from "./cart-state";
+import { cartMutationKey } from "@/modules/cart/client/optimistic";
 
 export interface ProductDetailActionsProps {
   product: Product;
@@ -28,8 +29,8 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
   const [selection, setSelection] = useState<Record<string, string>>({});
   const t = useTranslations("products");
-  const router = useRouter();
   const locale = useLocale();
+  const { addOptimistically, isPending } = useCartState();
   const variantSelection = useProductVariantSelection();
   const activeOptions = (product.options ?? []).filter((option) => option.isActive && option.values.some((value) => value.isActive));
   const variantProducts = (product.variants ?? []).filter((variant) => variant.active && variant.options.every((entry) => product.options?.find((option) => option.id === entry.optionId)?.values.find((value) => value.id === entry.valueId)?.isActive));
@@ -49,7 +50,24 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
     onVariantChange?.(nextVariant);
     variantSelection?.setSelectedVariant(nextVariant);
   }, [onVariantChange, selectedVariant, variantSelection]);
-  async function add() { setBusy(true); setError(""); setAdded(false); if (!complete || (product.variants?.length && (!selectedVariant || !selectedVariantAvailable))) { setError(locale === "ar" ? "هذا الاختيار غير متوفر حالياً." : "This combination is currently unavailable."); setBusy(false); return; } const result = await addProductToCart({ productId: product.id, variantId: selectedVariant?.id ?? null, quantity }); if (!result.success) setError(result.error.message); else { setAdded(true); router.refresh(); } setBusy(false); }
+  const mutationKey = cartMutationKey(product.id, selectedVariant?.id ?? null);
+  async function add() {
+    if (busy || isPending(mutationKey)) return;
+    setError("");
+    setAdded(false);
+    if (!complete || (product.variants?.length && (!selectedVariant || !selectedVariantAvailable))) {
+      setError(locale === "ar" ? "هذا الاختيار غير متوفر حالياً." : "This combination is currently unavailable.");
+      return;
+    }
+    setBusy(true);
+    setAdded(true);
+    const result = await addOptimistically(mutationKey, quantity, () => addProductToCart({ productId: product.id, variantId: selectedVariant?.id ?? null, quantity }));
+    if (!result.success) {
+      setAdded(false);
+      setError(result.error?.message === "CART_MUTATION_PENDING" ? "" : locale === "ar" ? "تعذر تحديث السلة." : "The cart could not be updated.");
+    }
+    setBusy(false);
+  }
 
   return (
     <div className="space-y-4 border-t border-[var(--border)] pt-4">
@@ -83,7 +101,7 @@ export function ProductDetailActions({ product, currency: currencyProp, initialF
         <Button
           variant="primary"
           size="lg"
-          disabled={outOfStock || digitalUnavailable || busy || !complete || Boolean(product.variants?.length && (!selectedVariant || !selectedVariantAvailable))}
+          disabled={outOfStock || digitalUnavailable || busy || isPending(mutationKey) || !complete || Boolean(product.variants?.length && (!selectedVariant || !selectedVariantAvailable))}
           onClick={() => void add()}
           className="flex-1 gap-2 h-11 shadow-sm active:scale-[0.98]"
         >

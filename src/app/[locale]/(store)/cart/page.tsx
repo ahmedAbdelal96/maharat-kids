@@ -16,5 +16,5 @@ export default async function CartPage() {
   const settings = await getPublicStoreSettings();
   if (!settings.success) throw settings.error;
   const t = await getTranslations("cart");
-  return <div className="space-y-8"><div className="border-b border-[var(--border)] pb-6"><h1 className="text-3xl font-extrabold tracking-tight">{t("drawerTitle", { count: cart.data.itemCount })}</h1><p className="mt-1 text-sm text-[var(--text-secondary)]">{t("drawerDescription")}</p></div><CartClient initialCart={cart.data} currency={settings.data.currency} /></div>;
+  return <div className="space-y-8"><div className="border-b border-[var(--border)] pb-6"><h1 className="text-3xl font-extrabold tracking-tight">{t("drawerTitle", { count: cart.data.itemCount })}</h1><p className="mt-1 text-sm text-[var(--text-secondary)]">{t("drawerDescription")}</p></div><CartClient currency={settings.data.currency} /></div>;
 }

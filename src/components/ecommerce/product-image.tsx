@@ -12,6 +12,7 @@ export interface ProductImageProps {
   className?: string;
   fill?: boolean;
   fit?: "contain" | "cover";
+  sizes?: string;
 }
 
 const DEFAULT_PLACEHOLDER = "/placeholders/product-placeholder.svg";
@@ -23,6 +24,7 @@ export function ProductImage({
   priority = false,
   className,
   fit = "cover",
+  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
 }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState<string>(src || DEFAULT_PLACEHOLDER);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +47,7 @@ export function ProductImage({
         src={imgSrc}
         alt={alt}
         fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        sizes={sizes}
         priority={priority}
         onLoad={() => setIsLoading(false)}
         onError={() => {

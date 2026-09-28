@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { ForbiddenError } from "@/core/errors";
 import { failure } from "@/core/result";
@@ -34,8 +35,10 @@ export function createAuthQueries(service: AuthService) {
   };
 }
 
+const getCurrentUserCached = cache(async () => createAuthQueries(createDefaultAuthService()).getCurrentUser());
+
 export async function getCurrentUser() {
-  return createAuthQueries(createDefaultAuthService()).getCurrentUser();
+  return getCurrentUserCached();
 }
 
 export async function requireAuthenticatedUser() {

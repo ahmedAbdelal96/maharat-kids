@@ -48,3 +48,4 @@ next-env.d.ts
 
 # local verification helper
 /src/phase22-verify-order.ts
+/tmp/

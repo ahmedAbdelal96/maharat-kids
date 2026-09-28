@@ -33,13 +33,12 @@ export default async function CategoryDetailPage({ params }: { params: Promise<{
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "ar";
   const navigation = await getTranslations("navigation");
   const t = await getTranslations("storefront");
-  const [category, allCategories, products, settings, favoriteIds] = await Promise.all([getPublicCategory(slug), getPublicCategories(), getPublicProducts({ categorySlug: slug, pageSize: 48 }), getPublicStoreSettings(), getCurrentCustomerFavoriteIds()]);
-  if (!category.success) throw category.error;
+  const [allCategories, products, settings, favoriteIds] = await Promise.all([getPublicCategories(), getPublicProducts({ categorySlug: slug, pageSize: 48 }), getPublicStoreSettings(), getCurrentCustomerFavoriteIds()]);
   if (!allCategories.success) throw allCategories.error;
   if (!products.success) throw products.error;
   if (!settings.success) throw settings.error;
-  if (!category.data) notFound();
-  const current = category.data;
+  const current = allCategories.data.find((item) => item.slug === slug);
+  if (!current) notFound();
   const children = allCategories.data.filter((item) => item.parentId === current.id);
   const byId = new Map(allCategories.data.map((item) => [item.id, item]));
   const breadcrumbs = [];

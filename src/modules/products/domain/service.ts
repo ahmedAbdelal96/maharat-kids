@@ -14,8 +14,9 @@ import type {
   Product,
   ProductId,
   CreateProductInput,
-  ProductPage,
   ProductQuery,
+  ProductPage,
+  StorefrontProductPage,
   UpdateProductInput,
 } from "../types";
 import type { ProductRepository } from "../infrastructure/repository";
@@ -74,12 +75,12 @@ export class ProductService {
 
   async findPublic(
     input: ProductQuery,
-  ): Promise<Result<ProductPage, AppError>> {
+  ): Promise<Result<StorefrontProductPage, AppError>> {
     try {
       const normalizedInput = input.search === undefined
         ? input
         : { ...input, search: normalizeSearchQuery(input.search) };
-      return success(await this.repository.findPublic(normalizedInput));
+      return success(await this.repository.findPublicCards(normalizedInput));
     } catch (error) {
       return failure(
         new AppError("PRODUCT_QUERY_FAILED", "Products are unavailable.", {
@@ -93,13 +94,37 @@ export class ProductService {
     slug: string,
   ): Promise<Result<Product | null, AppError>> {
     try {
-      return success(await this.repository.findBySlug(slug, true));
+      return success(await this.repository.findPublicDetail(slug));
     } catch (error) {
       return failure(
         new AppError("PRODUCT_QUERY_FAILED", "Product is unavailable.", {
           cause: error,
         }),
       );
+    }
+  }
+
+  async findPublicRelated(
+    categoryId: string | null,
+    excludeId: ProductId,
+    limit = 3,
+  ): Promise<Result<Product[], AppError>> {
+    try {
+      return success(await this.repository.findPublicRelated(categoryId, excludeId, limit));
+    } catch (error) {
+      return failure(new AppError("PRODUCT_QUERY_FAILED", "Related products are unavailable.", { cause: error }));
+    }
+  }
+
+  async findPublicRelatedCards(
+    categoryId: string | null,
+    excludeId: ProductId,
+    limit = 3,
+  ): Promise<Result<import("../types").StorefrontCardProduct[], AppError>> {
+    try {
+      return success(await this.repository.findPublicRelatedCards(categoryId, excludeId, limit));
+    } catch (error) {
+      return failure(new AppError("PRODUCT_QUERY_FAILED", "Related products are unavailable.", { cause: error }));
     }
   }
 

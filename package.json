@@ -19,6 +19,8 @@
     "test:mk09": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk09-orders.test.ts",
     "test:mk10": "node --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/mk10-storage.test.ts",
     "test:storage": "node node_modules/tsx/dist/cli.cjs --test tests/storage-capability.test.ts",
+    "test:cart": "node node_modules/tsx/dist/cli.cjs --test tests/cart-optimistic.test.ts",
+    "test:storefront": "node node_modules/tsx/dist/cli.cjs --test tests/storefront-read-model.test.ts",
     "test:otp": "node --conditions=react-server --env-file=.env node_modules/tsx/dist/cli.cjs --tsconfig tests/tsconfig.acceptance.json --test tests/otp-providers.test.ts",
     "test:media": "node node_modules/tsx/dist/cli.cjs --test tests/media-static.test.ts",
     "test:seed-media": "node node_modules/tsx/dist/cli.cjs --test tests/seed-media-migration.test.ts",

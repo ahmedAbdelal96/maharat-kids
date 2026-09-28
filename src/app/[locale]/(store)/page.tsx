@@ -17,6 +17,7 @@ import { getCatalogTaxonomy } from "@/modules/catalog/server/queries";
 import { getPublicBlogPosts } from "@/modules/blog/server/queries";
 import { resolveMarket } from "@/modules/market/server/resolver";
 import { getLocale, getTranslations } from "next-intl/server";
+import { withStorefrontCategoryLabels } from "@/modules/products/types";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function StoreHomePage() {
   const roots = categories.data.filter((category) => category.parentId === null && category.showInNavigation);
   // Curate 6-8 high-value categories for Home to keep it clean and fast
   const curatedCategories = roots.slice(0, 8);
-  const featured = products.data.items.slice(0, 4);
+  const featured = withStorefrontCategoryLabels(products.data.items.slice(0, 4), categories.data);
   const tabs = [
     { id: "all", label: t("featuredProducts"), count: featured.length },
     ...roots.slice(0, 4).map((category) => ({ id: category.slug, label: category.name })),

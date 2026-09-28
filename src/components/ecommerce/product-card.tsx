@@ -9,20 +9,22 @@ import { Button } from "@/components/ui/button";
 import { PriceDisplay } from "./price-display";
 import { ProductImage } from "./product-image";
 import { QuickViewModal } from "./quick-view-modal";
-import { getPrimaryProductImage, type Product } from "@/modules/products/types";
+import { getPrimaryProductImage, type StorefrontCardProduct } from "@/modules/products/types";
 import { addProductToCart } from "@/modules/cart/server/actions";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { getInventoryState } from "@/modules/inventory/domain/inventory";
 import { useTranslations } from "next-intl";
+import { cartMutationKey } from "@/modules/cart/client/optimistic";
+import { useCartState } from "./cart-state";
 
 export interface ProductCardProps {
-  product: Product;
+  product: StorefrontCardProduct;
   currency: string;
   priority?: boolean;
-  onAddToCart?: (product: Product, quantity?: number) => void;
+  onAddToCart?: (product: StorefrontCardProduct, quantity?: number) => void;
   initialFavorite?: boolean;
-  onFavoriteChange?: (product: Product, isFavorite: boolean) => void;
+  onFavoriteChange?: (product: StorefrontCardProduct, isFavorite: boolean) => void;
   className?: string;
 }
 
@@ -43,14 +45,15 @@ export function ProductCard({
   const [addError, setAddError] = useState<string | null>(null);
   const [addedMessage, setAddedMessage] = useState(false);
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
+  const { addOptimistically, isPending } = useCartState();
 
   const handleFavoriteChange = (nextValue: boolean) => {
     setIsFavorite(nextValue);
     onFavoriteChange?.(product, nextValue);
   };
 
-  const addItem = async (item: Product, quantity = 1) => {
-    if (item.variants?.length) {
+  const addItem = async (item: StorefrontCardProduct, quantity = 1) => {
+    if (item.hasVariants ?? Boolean(item.variants?.length)) {
       setIsQuickViewOpen(false);
       router.push(`/products/${item.slug}`);
       return;
@@ -62,15 +65,17 @@ export function ProductCard({
       return;
     }
 
+    const mutationKey = cartMutationKey(item.id, null);
+    if (isPending(mutationKey)) return;
     setIsAdding(true);
-    const result = await addProductToCart({ productId: item.id, quantity });
+    setAddedMessage(true);
+    const result = await addOptimistically(mutationKey, quantity, () => addProductToCart({ productId: item.id, quantity }));
     setIsAdding(false);
     if (!result.success) {
-      setAddError(result.error.message);
+      setAddedMessage(false);
+      setAddError(result.error?.message === "CART_MUTATION_PENDING" ? null : (t("addFailed") ?? "The cart could not be updated."));
       return;
     }
-    setAddedMessage(true);
-    router.refresh();
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -200,7 +205,7 @@ export function ProductCard({
               type="button"
               variant="primary"
               size="sm"
-              disabled={isAdding || !isPurchasable}
+              disabled={isAdding || isPending(cartMutationKey(product.id, null)) || !isPurchasable}
               onClick={handleAddToCart}
               className="h-8 px-2.5 gap-1 text-xs shrink-0 shadow-xs cursor-pointer active:scale-[0.97]"
               aria-label={`${t("add")} ${product.name}`}

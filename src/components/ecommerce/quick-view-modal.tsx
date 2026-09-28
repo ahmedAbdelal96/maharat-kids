@@ -7,17 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "./price-display";
 import { ProductImage } from "./product-image";
-import type { Product } from "@/modules/products/types";
+import type { StorefrontCardProduct } from "@/modules/products/types";
 import { getPrimaryProductImage } from "@/modules/products/types";
 import { FavoriteButton } from "@/modules/favorites/components/favorite-button";
 import { useTranslations } from "next-intl";
 
 export interface QuickViewModalProps {
-  product: Product | null;
+  product: StorefrontCardProduct | null;
   currency: string;
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart?: (product: Product, quantity: number) => void;
+  onAddToCart?: (product: StorefrontCardProduct, quantity: number) => void;
   initialFavorite?: boolean;
   onFavoriteChange?: (isFavorite: boolean) => void;
 }
